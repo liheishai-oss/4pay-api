@@ -1,0 +1,101 @@
+<?php
+
+namespace app\service;
+
+use app\common;
+use app\exception\MyBusinessException;
+use app\model\Admin;
+use app\model\RoleGroup;
+use app\model\SystemConfig;
+use support\Redis;
+
+class Login
+{
+
+    public function login(array $param)
+    {
+        // 查询用户
+        $admin = Admin::where('username', $param['username'])->first();
+
+        if (!$admin) {
+            throw new MyBusinessException('用户或者密码错误1');
+        }
+
+        if ((int)$admin->status !== 1) {
+            throw new MyBusinessException('用户已被禁用');
+        }
+
+        if (!password_verify($param['password'], $admin->password)) {
+            throw new MyBusinessException('用户或者密码错误2');
+        }
+        $google_code = SystemConfig::where('config_key', 'google_2fa_secret')->where('user_id',$admin->id)->value('config_value');
+        // Google Auth 验证
+        if (!$this->verifyGoogleAuth($param['google_code'], $google_code)) {
+            throw new MyBusinessException('Google 验证码错误');
+        }
+
+        // 如果找到分组信息
+        if ($admin->group_id>0) {
+            // 查询当前分组及其所有子分组的 ID
+            $allGroupIds = $this->getAllSubGroupIds($admin->group_id);
+            $allGroupIds[] = $admin->group_id;
+            // 登录信息准备
+            $userInfo = [
+                'admin_id' => $admin->id,
+                'username' => $admin->username,
+                'nickname' => $admin->nickname,
+                'user_group_id' => $admin->group_id,
+                'group_id' => json_encode($allGroupIds),
+                'status' => $admin->status,
+            ];
+
+            // 生成唯一的 token
+            $token = bin2hex(random_bytes(16)); // 生成一个 32 字符的随机 token
+
+            // 使用 HSET 批量写入用户信息
+            $redisKey = common::LOGIN_TOKEN_PREFIX."admin:{$token}";
+
+            // 使用 HSET 批量写入
+            Redis::hset($redisKey, 'admin_id', $userInfo['admin_id']);
+            Redis::hset($redisKey, 'username', $userInfo['username']);
+            Redis::hset($redisKey, 'nickname', $userInfo['nickname']);
+            Redis::hset($redisKey, 'group_id', $userInfo['group_id']);
+            Redis::hset($redisKey, 'user_group_id', $admin->group_id);
+            Redis::hset($redisKey, 'status', $userInfo['status']);
+            // 设置过期时间为7天
+            Redis::expire($redisKey, 86400*7);
+            return  ['Authorization'=>$token];
+
+        } else {
+            throw new MyBusinessException('没有找到关联的分组');
+        }
+    }
+    // 验证 Google Auth 验证码
+    private function verifyGoogleAuth($googleCode, $secret)
+    {
+        $googleAuthenticator = new \Google\Authenticator\GoogleAuthenticator();
+
+        // 验证 Google Auth 验证码
+        return $googleAuthenticator->checkCode($secret, $googleCode);
+    }
+    private function getAllSubGroupIds($groupId): array
+    {
+        $groupIds = [];
+        $this->getSubGroupIdsRecursive($groupId, $groupIds);
+        return $groupIds;
+    }
+// 递归查询当前分组下的所有子分组
+    private function getSubGroupIdsRecursive($parentGroupId, &$groupIds)
+    {
+        // 获取当前父分组的子分组
+        $subGroups = RoleGroup::where('parent_id', $parentGroupId)->get();
+
+        foreach ($subGroups as $subGroup) {
+            // 将当前分组ID添加到结果数组中
+            $groupIds[] = $subGroup->id;
+
+            // 递归查询子分组
+            $this->getSubGroupIdsRecursive($subGroup->id, $groupIds);
+        }
+    }
+}
