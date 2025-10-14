@@ -1,6 +1,5 @@
 [Unit]
 Description=三方支付服务
-Documentation=https://www.workerman.net/webman
 After=network.target
 
 [Service]
@@ -8,11 +7,12 @@ Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=/www/api.gflzt.cn
-ExecStart=sudo /usr/bin/php /www/api.gflzt.cn/start.php start
-ExecReload=sudo /bin/kill -USR1 $MAINPID
-ExecStop=sudo /usr/bin/php /www/api.gflzt.cn/start.php stop
+ExecStart=/usr/bin/php /www/api.gflzt.cn/start.php start
+ExecStop=/usr/bin/php /www/api.gflzt.cn/start.php stop
+ExecReload=/bin/kill -USR1 $MAINPID
 Restart=always
 RestartSec=3
+LimitNOFILE=100000
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=payment-service
