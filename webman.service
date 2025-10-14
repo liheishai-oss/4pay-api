@@ -1,0 +1,34 @@
+[Unit]
+Description=三方支付服务
+Documentation=https://www.workerman.net/webman
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/www/api.gflzt.cn
+ExecStart=/usr/bin/php /www/api.gflzt.cn/start.php start
+ExecReload=/bin/kill -USR1 $MAINPID
+ExecStop=/usr/bin/php /www/api.gflzt.cn/start.php stop
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=payment-service
+
+# 环境变量
+Environment=PHP_CLI_SERVER_WORKERS=4
+Environment=WEBMAN_ENV=production
+
+# 安全设置
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/www/api.gflzt.cn
+ReadWritePaths=/var/log/webman
+ReadWritePaths=/tmp
+
+[Install]
+WantedBy=multi-user.target
