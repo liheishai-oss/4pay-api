@@ -52,29 +52,39 @@ class MerchantCallbackMonitorService
      * 获取队列状态
      * @return array
      */
-    public function getQueueStatus(): array
+public function getQueueStatus(): array
     {
         try {
             // 获取通知队列状态
             $notifyQueue = Redis::lLen('merchant_notify_pending_queue');
             $retryQueue = Redis::zCard('merchant_notify_retry_queue');
+            $delayedQueue = Redis::zCard('merchant_notify_delayed_queue');
             $failedQueue = Redis::lLen('merchant_notify_failed_queue') ?: 0;
             
             // 设置队列限制
             $maxNotifyQueue = 1000;
             $maxRetryQueue = 500;
+            $maxDelayedQueue = 200;
             $maxFailedQueue = 100;
+            
+            // 获取处理进度状态
+            $processingStatus = \app\process\MerchantNotifyQueueProcess::getProcessingStatus();
             
             return [
                 'notifyQueue' => $notifyQueue,
                 'retryQueue' => $retryQueue,
+                'delayedQueue' => $delayedQueue,
                 'failedQueue' => $failedQueue,
                 'maxNotifyQueue' => $maxNotifyQueue,
                 'maxRetryQueue' => $maxRetryQueue,
+                'maxDelayedQueue' => $maxDelayedQueue,
                 'maxFailedQueue' => $maxFailedQueue,
                 'notifyQueuePercentage' => $notifyQueue > 0 ? round(($notifyQueue / $maxNotifyQueue) * 100, 2) : 0,
                 'retryQueuePercentage' => $retryQueue > 0 ? round(($retryQueue / $maxRetryQueue) * 100, 2) : 0,
-                'failedQueuePercentage' => $failedQueue > 0 ? round(($failedQueue / $maxFailedQueue) * 100, 2) : 0
+                'delayedQueuePercentage' => $delayedQueue > 0 ? round(($delayedQueue / $maxDelayedQueue) * 100, 2) : 0,
+                'failedQueuePercentage' => $failedQueue > 0 ? round(($failedQueue / $maxFailedQueue) * 100, 2) : 0,
+                'processingStatus' => $processingStatus,
+                'lastUpdate' => date('Y-m-d H:i:s')
             ];
         } catch (\Exception $e) {
             Log::error('获取队列状态失败', [
@@ -85,13 +95,18 @@ class MerchantCallbackMonitorService
             return [
                 'notifyQueue' => 0,
                 'retryQueue' => 0,
+                'delayedQueue' => 0,
                 'failedQueue' => 0,
                 'maxNotifyQueue' => 1000,
                 'maxRetryQueue' => 500,
+                'maxDelayedQueue' => 200,
                 'maxFailedQueue' => 100,
                 'notifyQueuePercentage' => 0,
                 'retryQueuePercentage' => 0,
-                'failedQueuePercentage' => 0
+                'delayedQueuePercentage' => 0,
+                'failedQueuePercentage' => 0,
+                'processingStatus' => null,
+                'lastUpdate' => date('Y-m-d H:i:s')
             ];
         }
     }

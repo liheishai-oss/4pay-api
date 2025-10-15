@@ -73,3 +73,35 @@ cloud_sql_proxy
 performance_monitor.php
 check_timeout_monitor_health.php
 view_timeout_monitor_logs.php
+
+# 监控脚本
+webman状态检查.sh
+
+# 测试和临时文件
+*.log
+*.tmp
+*.test
+test_*.php
+*_test.php
+*_example.php
+*_example.*
+*_backup.*
+*_bak.*
+*_old.*
+temp_*
+tmp_*
+debug_*
+monitor_*
+performance_*
+check_*
+view_*
+robot_*
+format_*
+update_*
+fix_*
+manual_*
+simple_*
+final_*
+group_*
+webhook.txt
+merchant_notify_queue.log
