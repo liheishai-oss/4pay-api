@@ -95,9 +95,8 @@ class AdminGroupController
                 throw new MyBusinessException('分组不存在');
             }
             if($id == 1){
-                 // 获取关联权限 ID 列表
-                $permissionIds = PermissionGroup::pluck('permission_id')
-                ->toArray();
+                 // 超级管理员获取所有权限 ID
+                $permissionIds = \app\model\AdminRule::pluck('id')->toArray();
             }else{
                  // 获取关联权限 ID 列表
                 $permissionIds = PermissionGroup::where('permission_group_id', $id)

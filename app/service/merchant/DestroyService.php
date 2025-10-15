@@ -33,11 +33,24 @@ class DestroyService
         try {
             Db::beginTransaction();
 
+            // 检查是否有关联的订单数据
+            $orderCount = \app\model\Order::whereIn('merchant_id', $ids)->count();
+            if ($orderCount > 0) {
+                throw new MyBusinessException("无法删除商户，存在 {$orderCount} 个关联订单。请先处理相关订单数据。");
+            }
+
             // 收集所有需要删除的管理员ID
             $adminIds = $merchants->pluck('admin_id')->filter()->toArray();
 
-            // 删除关联的管理员
+            // 检查管理员是否被其他表引用
             if (!empty($adminIds)) {
+                // 检查管理员是否被订单表引用
+                $adminOrderCount = \app\model\Order::whereIn('admin_id', $adminIds)->count();
+                if ($adminOrderCount > 0) {
+                    throw new MyBusinessException("无法删除商户，关联的管理员存在 {$adminOrderCount} 个关联订单。");
+                }
+                
+                // 删除关联的管理员
                 Admin::whereIn('id', $adminIds)->delete();
             }
 
@@ -95,11 +108,24 @@ class DestroyService
         try {
             Db::beginTransaction();
 
+            // 检查是否有关联的订单数据
+            $orderCount = \app\model\Order::whereIn('merchant_id', $ids)->count();
+            if ($orderCount > 0) {
+                throw new MyBusinessException("无法删除商户，存在 {$orderCount} 个关联订单。请先处理相关订单数据。");
+            }
+
             // 收集所有需要删除的管理员ID
             $adminIds = $merchants->pluck('admin_id')->filter()->toArray();
 
-            // 删除关联的管理员
+            // 检查管理员是否被其他表引用
             if (!empty($adminIds)) {
+                // 检查管理员是否被订单表引用
+                $adminOrderCount = \app\model\Order::whereIn('admin_id', $adminIds)->count();
+                if ($adminOrderCount > 0) {
+                    throw new MyBusinessException("无法删除商户，关联的管理员存在 {$adminOrderCount} 个关联订单。");
+                }
+                
+                // 删除关联的管理员
                 Admin::whereIn('id', $adminIds)->delete();
             }
 
@@ -145,6 +171,117 @@ class DestroyService
     public function deleteMerchant(int $id): bool
     {
         return $this->deleteMerchants([$id]);
+    }
+
+    /**
+     * 安全删除商户（软删除或强制删除）
+     * @param array $ids
+     * @param bool $force 是否强制删除（忽略外键约束）
+     * @return bool
+     * @throws MyBusinessException
+     */
+    public function safeDeleteMerchants(array $ids, bool $force = false): bool
+    {
+        if (empty($ids)) {
+            throw new MyBusinessException('请选择要删除的数据');
+        }
+
+        $merchants = Merchant::whereIn('id', $ids)->get();
+
+        if ($merchants->isEmpty()) {
+            throw new MyBusinessException('商户不存在');
+        }
+
+        try {
+            Db::beginTransaction();
+
+            if (!$force) {
+                // 检查是否有关联的订单数据
+                $orderCount = \app\model\Order::whereIn('merchant_id', $ids)->count();
+                if ($orderCount > 0) {
+                    throw new MyBusinessException("无法删除商户，存在 {$orderCount} 个关联订单。请先处理相关订单数据，或使用强制删除。");
+                }
+
+                // 收集所有需要删除的管理员ID
+                $adminIds = $merchants->pluck('admin_id')->filter()->toArray();
+
+                // 检查管理员是否被其他表引用
+                if (!empty($adminIds)) {
+                    // 检查管理员是否被订单表引用
+                    $adminOrderCount = \app\model\Order::whereIn('admin_id', $adminIds)->count();
+                    if ($adminOrderCount > 0) {
+                        throw new MyBusinessException("无法删除商户，关联的管理员存在 {$adminOrderCount} 个关联订单。");
+                    }
+                    
+                    // 删除关联的管理员
+                    Admin::whereIn('id', $adminIds)->delete();
+                }
+            } else {
+                // 强制删除模式：先删除关联数据
+                $this->forceDeleteRelatedData($ids);
+            }
+
+            // 删除商户
+            Merchant::whereIn('id', $ids)->delete();
+
+            // 清理缓存
+            $this->clearMerchantCache($merchants);
+
+            Db::commit();
+            return true;
+        } catch (\Exception $e) {
+            Db::rollBack();
+            throw new MyBusinessException('删除商户失败：' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 强制删除关联数据
+     * @param array $merchantIds
+     * @return void
+     */
+    private function forceDeleteRelatedData(array $merchantIds): void
+    {
+        // 获取关联的管理员ID
+        $adminIds = Merchant::whereIn('id', $merchantIds)->pluck('admin_id')->filter()->toArray();
+        
+        if (!empty($adminIds)) {
+            // 删除关联的订单（如果存在）
+            \app\model\Order::whereIn('merchant_id', $merchantIds)->delete();
+            \app\model\Order::whereIn('admin_id', $adminIds)->delete();
+            
+            // 删除关联的管理员
+            Admin::whereIn('id', $adminIds)->delete();
+        }
+    }
+
+    /**
+     * 清理商户缓存
+     * @param $merchants
+     * @return void
+     */
+    private function clearMerchantCache($merchants): void
+    {
+        // 逐个清除被删除商户的缓存
+        $merchantKeys = $merchants->pluck('merchant_key')->filter()->toArray();
+        if (!empty($merchantKeys)) {
+            MerchantCacheHelper::clearMerchantsCacheIndividually($merchantKeys);
+        }
+
+        // 清理订单处理专用缓存
+        $merchantCacheKeys = [];
+        foreach ($merchants as $merchant) {
+            $merchantCacheKeys[] = CacheKeys::getMerchantInfo($merchant->id);
+        }
+        
+        if (!empty($merchantCacheKeys)) {
+            MultiLevelCacheHelper::clearOrderMerchantBatch($merchantCacheKeys);
+        }
+        
+        // 清理商户订单号检查缓存
+        foreach ($merchants as $merchant) {
+            MultiLevelCacheHelper::clearOrderMerchantByPattern('*merchant_order_no:' . $merchant->id . '*');
+        }
     }
 }
 

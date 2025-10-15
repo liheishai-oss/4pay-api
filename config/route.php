@@ -276,6 +276,19 @@ Route::group('/api/v1/admin', function() {
         Route::add(['GET', 'OPTIONS'], '/queue-status', [app\admin\controller\v1\MerchantCallbackMonitorController::class, 'getQueueStatus']);
     });
 
+    // 测试路由
+    Route::add(['GET', 'OPTIONS'], '/test/server-list', [app\admin\controller\v1\TestController::class, 'serverList']);
+    
+    // Dashboard 路由
+    Route::add(['GET', 'OPTIONS'], '/dashboard/stats', [app\admin\controller\v1\DashboardController::class, 'getTodayStats']);
+    Route::add(['GET', 'OPTIONS'], '/dashboard/trend', [app\admin\controller\v1\DashboardController::class, 'getOrderTrend']);
+    Route::add(['GET', 'OPTIONS'], '/dashboard/ranking', [app\admin\controller\v1\DashboardController::class, 'getChannelRanking']);
+    Route::add(['GET', 'OPTIONS'], '/dashboard/data', [app\admin\controller\v1\DashboardController::class, 'getDashboardData']);
+    
+    // 权限测试路由
+    Route::add(['GET', 'OPTIONS'], '/test/permissions', [app\admin\controller\v1\TestController::class, 'getPermissions']);
+    Route::add(['GET', 'OPTIONS'], '/test/check-permissions', [app\admin\controller\v1\TestController::class, 'checkPermissions']);
+
 
 
 
@@ -316,8 +329,6 @@ Route::group('/api/v1', function () {
     // 简单测试路由（无中间件）
     Route::add(['POST', 'OPTIONS'], '/callback/simple-test', [app\api\controller\v1\callback\TestController::class, 'test']);
     
-    // 服务器列表测试路由（无中间件）
-    Route::add(['GET', 'OPTIONS'], '/test/server-list', [app\admin\controller\v1\TestController::class, 'serverList']);
 
 
 

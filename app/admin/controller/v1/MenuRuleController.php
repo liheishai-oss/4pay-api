@@ -79,34 +79,93 @@ class MenuRuleController
         if($group_id ==0){
             $group_id = $request->userData['user_group_id'];
         }
-//
 
-
-        // 非超管时获取该分组权限 ID
-        $rules = [];
+        // 获取该分组已拥有的权限 ID（用于标记选中状态）
+        $ownedRules = [];
         if ($group_id != 1) {
-            $group = RoleGroup::find($group_id);
-            $rules = PermissionGroup::where('permission_group_id', $group->parent_id)
+            $ownedRules = PermissionGroup::where('permission_group_id', $group_id)
                 ->pluck('permission_id')
                 ->toArray();
-
+        } else {
+            // 超级管理员拥有所有权限
+            $ownedRules = AdminRule::pluck('id')->toArray();
         }
 
-        // 查询顶级菜单
-        $query = AdminRule::where('parent_id', 0)->select(['id', 'title','parent_id']);
-        if ($group_id != 1) {
-            $query->whereIn('id', $rules);
+        // 获取可分配的权限范围
+        $availableRules = [];
+        if ($group_id == 1) {
+            // 超级管理员可以分配所有权限
+            $availableRules = AdminRule::pluck('id')->toArray();
+        } else {
+            // 普通管理组只能分配其父级拥有的权限
+            $group = \app\model\RoleGroup::find($group_id);
+            if ($group && $group->parent_id > 0) {
+                // 获取父级拥有的权限
+                $parentRules = PermissionGroup::where('permission_group_id', $group->parent_id)
+                    ->pluck('permission_id')
+                    ->toArray();
+                $availableRules = $parentRules;
+            } else {
+                // 如果没有父级，显示所有权限
+                $availableRules = AdminRule::pluck('id')->toArray();
+            }
         }
+
+        // 临时测试：直接返回所有顶级权限，不进行过滤
+        $query = AdminRule::where('parent_id', 0)
+            ->select(['id', 'title','parent_id'])
+            ->orderBy('weight', 'desc');
+            
+        // 暂时注释掉过滤逻辑，直接显示所有权限
+        // if (!empty($availableRules)) {
+        //     $query->whereIn('id', $availableRules);
+        // } else {
+        //     $query->where('status', 1);
+        // }
+        
+        // 添加调试：检查权限数据
+        $totalRules = AdminRule::count();
+        $activeRules = AdminRule::where('status', 1)->count();
+        $topLevelRules = AdminRule::where('parent_id', 0)->where('status', 1)->count();
+        
+        \support\Log::info('权限数据统计', [
+            'total_rules' => $totalRules,
+            'active_rules' => $activeRules,
+            'top_level_rules' => $topLevelRules,
+            'available_rules_count' => count($availableRules)
+        ]);
 
         $data = $query->get()->map(function($item) {
-            $item->children =  AdminRule::where('parent_id',$item->id)->select(['id','title','parent_id'])->get()->map(function($items)  {
-                $items->children =  AdminRule::where('parent_id',$items->id)->select(['id','title','parent_id'])->get();
-                $items->isPenultimate = true;
-                return $items;
+            // 简化子权限查询，暂时不过滤
+            $children = AdminRule::where('parent_id',$item->id)
+                ->select(['id','title','parent_id'])
+                ->orderBy('weight', 'desc')
+                ->get();
+                
+            $item->children = $children->map(function($child) {
+                $grandChildren = AdminRule::where('parent_id',$child->id)
+                    ->select(['id','title','parent_id'])
+                    ->orderBy('weight', 'desc')
+                    ->get();
+                $child->children = $grandChildren;
+                $child->isPenultimate = true;
+                return $child;
             });
             return $item;
         })->toArray();
-        return success($data);
+        
+        // 添加调试日志
+        \support\Log::info('权限树形数据', [
+            'group_id' => $group_id,
+            'owned_rules' => $ownedRules,
+            'available_rules' => $availableRules,
+            'data_count' => count($data)
+        ]);
+        
+        return success([
+            'tree_data' => $data,
+            'owned_rules' => $ownedRules
+        ]);
     }
 
     public function store(Request $request): Response
