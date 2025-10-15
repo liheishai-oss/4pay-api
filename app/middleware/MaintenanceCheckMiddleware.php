@@ -25,9 +25,10 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
         try {
             // 只对API请求进行维护状态检查，跳过前端页面请求
             $uri = $request->uri();
-            Log::info('维护状态检查中间件', [
+            Log::info('维护状态检查中间件开始', [
                 'uri' => $uri,
-                'is_api' => str_starts_with($uri, '/api/')
+                'is_api' => str_starts_with($uri, '/api/'),
+                'method' => $request->method()
             ]);
             
             // 跳过非API请求
