@@ -207,22 +207,42 @@ class OrderManagementService
      */
     public function getOrderStatistics($searchParams = [])
     {
-        $query = Order::query();
+        $baseQuery = Order::query();
 
         // 应用搜索条件
         if (!empty($searchParams['start_time'])) {
-            $query->where('created_at', '>=', $searchParams['start_time']);
+            $baseQuery->where('created_at', '>=', $searchParams['start_time']);
         }
         if (!empty($searchParams['end_time'])) {
-            $query->where('created_at', '<=', $searchParams['end_time']);
+            $baseQuery->where('created_at', '<=', $searchParams['end_time']);
+        }
+        if (!empty($searchParams['merchant_id'])) {
+            $baseQuery->where('merchant_id', $searchParams['merchant_id']);
+        }
+        if (!empty($searchParams['order_no'])) {
+            $baseQuery->where('order_no', 'like', '%' . trim($searchParams['order_no']) . '%');
+        }
+        if (!empty($searchParams['merchant_order_no'])) {
+            $baseQuery->where('merchant_order_no', 'like', '%' . trim($searchParams['merchant_order_no']) . '%');
+        }
+        if (isset($searchParams['status']) && $searchParams['status'] !== '' && $searchParams['status'] !== null) {
+            $baseQuery->where('status', $searchParams['status']);
         }
 
-        $totalOrders = $query->count();
-        $totalAmount = $query->sum('amount');
-        $paidOrders = $query->where('status', OrderStatus::SUCCESS)->count();
-        $paidAmount = $query->where('status', OrderStatus::SUCCESS)->sum('amount');
-        $pendingOrders = $query->whereIn('status', [OrderStatus::PENDING, OrderStatus::PAYING])->count();
-        $pendingAmount = $query->whereIn('status', [OrderStatus::PENDING, OrderStatus::PAYING])->sum('amount');
+        // 获取总数据
+        $totalOrders = $baseQuery->count();
+        $totalAmount = $baseQuery->sum('amount');
+
+        // 获取已付数据（重新构建查询）
+        $paidQuery = clone $baseQuery;
+        $paidOrders = $paidQuery->where('status', OrderStatus::SUCCESS)->count();
+        $paidAmount = $paidQuery->where('status', OrderStatus::SUCCESS)->sum('amount');
+
+        // 获取未付数据（重新构建查询）- 除了已支付成功的都是未付
+        $unpaidQuery = clone $baseQuery;
+        $unpaidOrders = $unpaidQuery->where('status', '!=', OrderStatus::SUCCESS)->count();
+        $unpaidAmount = $unpaidQuery->where('status', '!=', OrderStatus::SUCCESS)->sum('amount');
+
         $successRate = $totalOrders > 0 ? round(($paidOrders / $totalOrders) * 100, 2) : 0;
 
         return [
@@ -230,8 +250,8 @@ class OrderManagementService
             'total_amount' => $totalAmount,
             'paid_orders' => $paidOrders,
             'paid_amount' => $paidAmount,
-            'pending_orders' => $pendingOrders,
-            'pending_amount' => $pendingAmount,
+            'unpaid_orders' => $unpaidOrders,
+            'unpaid_amount' => $unpaidAmount,
             'success_rate' => $successRate
         ];
     }

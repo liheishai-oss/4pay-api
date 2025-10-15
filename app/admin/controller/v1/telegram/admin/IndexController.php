@@ -24,7 +24,7 @@ class IndexController
             $result = $this->telegramAdminService->getList($params);
             return success($result, '获取列表成功');
         } catch (Throwable $e) {
-            return error($e->getMessage(), $e->getCode() ?: 400);
+            return error($e->getMessage(), (int)($e->getCode() ?: 400));
         }
     }
 
@@ -37,7 +37,7 @@ class IndexController
             $statistics = $this->telegramAdminService->getStatistics();
             return success($statistics, '获取统计信息成功');
         } catch (Throwable $e) {
-            return error($e->getMessage(), $e->getCode() ?: 400);
+            return error($e->getMessage(), (int)($e->getCode() ?: 400));
         }
     }
 }

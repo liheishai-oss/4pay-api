@@ -63,6 +63,9 @@ class Auth implements MiddlewareInterface
                 $allGroupIds = $this->getAllSubGroupIds($userinfo->group_id);
                 $allGroupIds[] = $userinfo->group_id;
 
+                // 检查是否为商户管理员：通过admin_id查询商户表
+                $isMerchantAdmin = \app\model\Merchant::where('admin_id', $userinfo->id)->exists();
+                
                 $userData = [
                     'admin_id' => $userinfo->id,
                     'nickname' => $userinfo->nickname,
@@ -70,6 +73,7 @@ class Auth implements MiddlewareInterface
                     'user_group_id' => $userinfo->group_id,
                     'group_id' => $allGroupIds,
                     'status' => $userinfo->status,
+                    'is_merchant_admin' => $isMerchantAdmin,
                 ];
 
             }

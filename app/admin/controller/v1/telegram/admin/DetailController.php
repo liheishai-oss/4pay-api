@@ -28,7 +28,7 @@ class DetailController
             
             return success($admin, '获取详情成功');
         } catch (Throwable $e) {
-            return error($e->getMessage(), $e->getCode() ?: 400);
+            return error($e->getMessage(), (int)($e->getCode() ?: 400));
         }
     }
 }

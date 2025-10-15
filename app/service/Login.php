@@ -28,7 +28,18 @@ class Login
         if (!password_verify($param['password'], $admin->password)) {
             throw new MyBusinessException('用户或者密码错误2');
         }
-        $google_code = SystemConfig::where('config_key', 'google_2fa_secret')->where('user_id',$admin->id)->value('config_value');
+
+        // 检查是否首次登录（在Google Auth验证之前）
+        if ($admin->is_first_login == 1) {
+            return [
+                'need_change_password' => true,
+                'admin_id' => $admin->id,
+                'username' => $admin->username,
+                'message' => '首次登录需要修改密码'
+            ];
+        }
+
+        $google_code = SystemConfig::where('config_key', 'google_2fa_secret')->where('merchant_id',$admin->id)->value('config_value');
         // Google Auth 验证
         if (!$this->verifyGoogleAuth($param['google_code'], $google_code)) {
             throw new MyBusinessException('Google 验证码错误');
@@ -39,6 +50,9 @@ class Login
             // 查询当前分组及其所有子分组的 ID
             $allGroupIds = $this->getAllSubGroupIds($admin->group_id);
             $allGroupIds[] = $admin->group_id;
+            // 检查是否为商户管理员：通过admin_id查询商户表
+            $isMerchantAdmin = \app\model\Merchant::where('admin_id', $admin->id)->exists();
+            
             // 登录信息准备
             $userInfo = [
                 'admin_id' => $admin->id,
@@ -47,6 +61,7 @@ class Login
                 'user_group_id' => $admin->group_id,
                 'group_id' => json_encode($allGroupIds),
                 'status' => $admin->status,
+                'is_merchant_admin' => $isMerchantAdmin,
             ];
 
             // 生成唯一的 token
@@ -62,6 +77,7 @@ class Login
             Redis::hset($redisKey, 'group_id', $userInfo['group_id']);
             Redis::hset($redisKey, 'user_group_id', $admin->group_id);
             Redis::hset($redisKey, 'status', $userInfo['status']);
+            Redis::hset($redisKey, 'is_merchant_admin', $userInfo['is_merchant_admin'] ? '1' : '0');
             // 设置过期时间为7天
             Redis::expire($redisKey, 86400*7);
             return  ['Authorization'=>$token];
@@ -73,7 +89,7 @@ class Login
     // 验证 Google Auth 验证码
     private function verifyGoogleAuth($googleCode, $secret)
     {
-        $googleAuthenticator = new \Google\Authenticator\GoogleAuthenticator();
+        $googleAuthenticator = new \Sonata\GoogleAuthenticator\GoogleAuthenticator();
 
         // 验证 Google Auth 验证码
         return $googleAuthenticator->checkCode($secret, $googleCode);

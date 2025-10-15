@@ -10,6 +10,9 @@ use support\Response;
 
 class GoogleAuthController
 {
+    // 不需要登录的方法
+    protected $noNeedLogin = ['generateQrCode', 'bindGoogleAuth', 'checkBinding'];
+    
     public function __construct(
         private readonly GoogleAuthService $googleAuthService
     ) {
@@ -21,11 +24,16 @@ class GoogleAuthController
     public function generateQrCode(Request $request): Response
     {
         try {
-            $userId = $request->userData['admin_id'];
+            // 从请求参数中获取用户ID（用于登录过程中的绑定）
+            $userId = $request->get('admin_id');
+            
+            if (!$userId) {
+                return error('缺少用户ID参数', 400);
+            }
             
             // 检查是否已经绑定
             $existingSecret = SystemConfig::where('config_key', 'google_2fa_secret')
-                ->where('user_id', $userId)
+                ->where('merchant_id', $userId)
                 ->value('config_value');
                 
             if ($existingSecret) {
@@ -47,14 +55,15 @@ class GoogleAuthController
     /**
      * 验证并绑定谷歌验证码
      */
-    public function bindGoogleAuth(Request $request): Response
+public function bindGoogleAuth(Request $request): Response
     {
         try {
-            $userId = $request->userData['admin_id'];
+            // 从请求参数中获取用户ID（用于登录过程中的绑定）
+            $userId = $request->post('admin_id');
             $googleCode = $request->post('google_code');
             $secret = $request->post('secret');
             
-            if (empty($googleCode) || empty($secret)) {
+            if (empty($userId) || empty($googleCode) || empty($secret)) {
                 throw new MyBusinessException('参数错误');
             }
             
@@ -78,10 +87,15 @@ class GoogleAuthController
     public function checkBinding(Request $request): Response
     {
         try {
-            $userId = $request->userData['admin_id'];
+            // 从请求参数中获取用户ID（用于登录过程中的绑定）
+            $userId = $request->get('admin_id');
+            
+            if (!$userId) {
+                return error('缺少用户ID参数', 400);
+            }
             
             $secret = SystemConfig::where('config_key', 'google_2fa_secret')
-                ->where('user_id', $userId)
+                ->where('merchant_id', $userId)
                 ->value('config_value');
                 
             return success([

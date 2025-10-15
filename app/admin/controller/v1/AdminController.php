@@ -265,7 +265,21 @@ private function getRuleWithParents(array $ruleIds): array
 
     public function info(Request $request)
     {
-         return success($request->userData);
+        $userData = $request->userData;
+        
+        // 确保is_merchant_admin字段存在，如果不存在则查询并添加
+        if (!isset($userData['is_merchant_admin'])) {
+            $adminId = $userData['admin_id'] ?? null;
+            $isMerchantAdmin = false;
+            
+            if ($adminId) {
+                $isMerchantAdmin = \app\model\Merchant::where('admin_id', $adminId)->exists();
+            }
+            
+            $userData['is_merchant_admin'] = $isMerchantAdmin;
+        }
+        
+        return success($userData);
     }
 
 }

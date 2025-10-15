@@ -42,7 +42,7 @@ class DestroyController
                 return error('删除失败', 500);
             }
         } catch (Throwable $e) {
-            return error($e->getMessage(), $e->getCode() ?: 400);
+            return error($e->getMessage(), (int)($e->getCode() ?: 400));
         }
     }
 
@@ -62,7 +62,7 @@ class DestroyController
             
             return success(['count' => $count], "批量删除成功，共删除{$count}条记录");
         } catch (Throwable $e) {
-            return error($e->getMessage(), $e->getCode() ?: 400);
+            return error($e->getMessage(), (int)($e->getCode() ?: 400));
         }
     }
 }

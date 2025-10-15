@@ -47,6 +47,16 @@ class LoginService
             }
         }
 
+        // 检查是否首次登录（在谷歌验证之后）
+        if ($admin->is_first_login == 1) {
+            return [
+                'need_change_password' => true,
+                'admin_id' => $admin->id,
+                'username' => $admin->username,
+                'message' => '首次登录需要修改密码'
+            ];
+        }
+
         if ($admin->group_id <= 0) {
             throw new MyBusinessException('用户信息错误');
         }

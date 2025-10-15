@@ -26,7 +26,9 @@ class Admin extends Model
         'status',
         'last_login_at',
         'last_login_ip',
-        'token'
+        'token',
+        'is_first_login',
+        'password_changed_at'
     ];
 
     /**

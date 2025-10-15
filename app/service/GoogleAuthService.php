@@ -40,7 +40,7 @@ class GoogleAuthService
      */
     public function verifyCode(string $secret, string $code): bool
     {
-        $googleAuthenticator = new \Google\Authenticator\GoogleAuthenticator();
+        $googleAuthenticator = new \Sonata\GoogleAuthenticator\GoogleAuthenticator();
         return $googleAuthenticator->checkCode($secret, $code);
     }
 
@@ -54,15 +54,15 @@ class GoogleAuthService
             
             // 删除旧的密钥
             SystemConfig::where('config_key', 'google_2fa_secret')
-                ->where('user_id', $userId)
+                ->where('merchant_id', $userId)
                 ->delete();
             
             // 保存新密钥
             $config = new SystemConfig();
             $config->config_key = 'google_2fa_secret';
             $config->config_value = $secret;
-            $config->user_id = $userId;
-            $config->scope = 'user';
+            $config->merchant_id = $userId;
+            $config->scope = 'system';
             $config->save();
             
             Db::commit();
@@ -77,7 +77,8 @@ class GoogleAuthService
      */
     private function generateSecret(): string
     {
-        return \Google\Authenticator\GoogleAuthenticator::generateRandomSecret();
+        $googleAuthenticator = new \Sonata\GoogleAuthenticator\GoogleAuthenticator();
+        return $googleAuthenticator->generateSecret();
     }
 
     /**

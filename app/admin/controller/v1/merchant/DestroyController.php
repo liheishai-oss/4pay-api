@@ -43,7 +43,7 @@ class DestroyController
                 return error('删除失败', 500);
             }
         } catch (Throwable $e) {
-            return error($e->getMessage(), $e->getCode() ?: 400);
+            return error($e->getMessage(), (int)($e->getCode() ?: 400));
         }
     }
 
@@ -70,7 +70,7 @@ class DestroyController
                 return error('批量删除失败', 500);
             }
         } catch (Throwable $e) {
-            return error($e->getMessage(), $e->getCode() ?: 400);
+            return error($e->getMessage(), (int)($e->getCode() ?: 400));
         }
     }
 }

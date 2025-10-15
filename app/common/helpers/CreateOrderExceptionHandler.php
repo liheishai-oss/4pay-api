@@ -24,7 +24,7 @@ class CreateOrderExceptionHandler
         ], AppConstants::TELEGRAM_DEFAULT_CHAT_ID);
         ExceptionContextHelper::set($e);
 
-        return error($e->getCode(), $message);
+        return error($message, (int)($e->getCode() ?: 400));
     }
 
 
