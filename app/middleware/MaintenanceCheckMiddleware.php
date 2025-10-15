@@ -30,8 +30,30 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                 'is_api' => str_starts_with($uri, '/api/')
             ]);
             
+            // 跳过非API请求
             if (!str_starts_with($uri, '/api/')) {
                 return $handler($request);
+            }
+            
+            // 排除管理员接口，避免管理员无法在维护期间管理服务器状态
+            $excludePaths = [
+                '/api/v1/admin/server',
+                '/api/v1/admin/maintenance',
+                '/api/v1/admin/login',
+                '/api/v1/admin/system',
+                '/api/v1/admin/merchant-callback-monitor',
+                '/api/v1/admin/telegram',
+                '/api/v1/admin/notify'
+            ];
+            
+            foreach ($excludePaths as $excludePath) {
+                if (str_starts_with($uri, $excludePath)) {
+                    Log::info('跳过管理员接口的维护状态检查', [
+                        'uri' => $uri,
+                        'exclude_path' => $excludePath
+                    ]);
+                    return $handler($request);
+                }
             }
             
             // 检查数据库表是否存在
