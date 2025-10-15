@@ -288,6 +288,11 @@ Route::group('/api/v1/admin', function() {
     // 权限测试路由
     Route::add(['GET', 'OPTIONS'], '/test/permissions', [app\admin\controller\v1\TestController::class, 'getPermissions']);
     Route::add(['GET', 'OPTIONS'], '/test/check-permissions', [app\admin\controller\v1\TestController::class, 'checkPermissions']);
+    
+    // 谷歌验证码路由
+    Route::add(['GET', 'OPTIONS'], '/google-auth/qr-code', [app\admin\controller\v1\GoogleAuthController::class, 'generateQrCode']);
+    Route::add(['POST', 'OPTIONS'], '/google-auth/bind', [app\admin\controller\v1\GoogleAuthController::class, 'bindGoogleAuth']);
+    Route::add(['GET', 'OPTIONS'], '/google-auth/check', [app\admin\controller\v1\GoogleAuthController::class, 'checkBinding']);
 
 
 

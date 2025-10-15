@@ -16,30 +16,36 @@ class LoginService
 
     public function login(array $param): array
     {
-        // --- 改造：检查是否开启谷歌验证 ---
+        // 验证用户凭据
+        $admin = $this->doginDataValidator->validate($param, false);
+        
+        // 检查是否开启谷歌验证
         $config = ConfigHelper::getAll();
-
-        $googleEnabled = json_decode($config['admin_login_verify_mode'], true);
-
-        if (count($googleEnabled)>0) {
-            $googleEnabled = in_array('google', $googleEnabled);
+        $googleEnabled = json_decode($config['admin_login_verify_mode'] ?? '[]', true);
+        
+        if (is_array($googleEnabled) && in_array('google', $googleEnabled)) {
+            // 检查用户是否已绑定谷歌验证码
+            $googleSecret = $this->repository->getGoogle2FASecret($admin->id);
+            
+            if (!$googleSecret) {
+                // 未绑定，返回需要绑定的信息
+                return [
+                    'need_bind_google' => true,
+                    'admin_id' => $admin->id,
+                    'username' => $admin->username,
+                    'message' => '请先绑定谷歌验证码'
+                ];
+            }
+            
+            // 已绑定，验证谷歌验证码
+            if (empty($param['google_code'])) {
+                throw new MyBusinessException('请输入谷歌验证码');
+            }
+            
+            if (!$this->verifyGoogleAuth($param['google_code'], $googleSecret)) {
+                throw new MyBusinessException('谷歌验证码错误');
+            }
         }
-
-        if ($googleEnabled) {
-            $admin = $this->doginDataValidator->validate($param,false);
-//            // 查询谷歌密钥
-//            $googleSecret = SystemConfig::where('config_key', 'google_2fa_secret')
-//                ->where('scope', 'system')
-//                ->where('user_id', $admin->id)
-//                ->value('config_value');
-//
-//            if (!$googleSecret || !$this->verifyGoogleAuth($param['google_code'], $googleSecret)) {
-//                throw new MyBusinessException('Google 验证码错误');
-//            }
-        } else {
-            $admin = $this->doginDataValidator->validate($param);
-        }
-        // --- 改造结束 ---
 
         if ($admin->group_id <= 0) {
             throw new MyBusinessException('用户信息错误');
@@ -56,7 +62,6 @@ class LoginService
         ];
 
         $token = $this->repository->persistLoginToken($userInfo);
-
 
         return ['Authorization' => $token];
     }
