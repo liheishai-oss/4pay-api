@@ -68,5 +68,13 @@ return [
         'reloadable' => false,
         'count' => 1,
         'constructor' => []
+    ],
+
+    // 商户通知队列进程 - 完整版（处理新通知、重试、延迟）
+    'merchant_notify_queue' => [
+        'handler' => app\process\MerchantNotifyQueueProcess::class,
+        'reloadable' => false,
+        'count' => 1,
+        'constructor' => []
     ]
 ];
