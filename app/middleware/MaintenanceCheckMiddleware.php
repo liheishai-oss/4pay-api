@@ -30,7 +30,16 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                 'is_api' => str_starts_with($uri, '/api/')
             ]);
             
+            // 跳过非API请求
             if (!str_starts_with($uri, '/api/')) {
+                return $handler($request);
+            }
+            
+            // 排除所有管理员接口，避免管理员无法在维护期间管理服务器状态
+            if (str_starts_with($uri, '/api/v1/admin')) {
+                Log::info('跳过管理员接口的维护状态检查', [
+                    'uri' => $uri
+                ]);
                 return $handler($request);
             }
             
