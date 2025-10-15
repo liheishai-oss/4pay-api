@@ -6,20 +6,21 @@ use support\Request;
 use support\Response;
 use app\model\Server;
 use support\Log;
+use Webman\MiddlewareInterface;
 
 /**
  * 维护状态检查中间件
  * 在API请求前检查服务器维护状态，如果检测到维护状态则返回nginx配置
  */
-class MaintenanceCheckMiddleware
+class MaintenanceCheckMiddleware implements MiddlewareInterface
 {
     /**
      * 处理请求
-     * @param Request $request
-     * @param callable $next
-     * @return Response
+     * @param \Webman\Http\Request $request
+     * @param callable $handler
+     * @return \Webman\Http\Response
      */
-    public function process(Request $request, callable $next): Response
+    public function process(\Webman\Http\Request $request, callable $handler): \Webman\Http\Response
     {
         try {
             // 只对API请求进行维护状态检查，跳过前端页面请求
@@ -30,7 +31,7 @@ class MaintenanceCheckMiddleware
             ]);
             
             if (!str_starts_with($uri, '/api/')) {
-                return $next($request);
+                return $handler($request);
             }
             
             // 检查数据库表是否存在
@@ -45,7 +46,7 @@ class MaintenanceCheckMiddleware
                     'error' => $dbError->getMessage(),
                     'request_uri' => $request->uri()
                 ]);
-                return $next($request);
+                return $handler($request);
             }
 
             if ($maintenanceServers->isNotEmpty()) {
@@ -74,7 +75,7 @@ class MaintenanceCheckMiddleware
             }
 
             // 没有维护状态，继续处理请求
-            return $next($request);
+            return $handler($request);
 
         } catch (\Exception $e) {
             Log::error('维护状态检查失败', [
@@ -84,7 +85,7 @@ class MaintenanceCheckMiddleware
             ]);
 
             // 检查失败时，为了安全起见，继续处理请求
-            return $next($request);
+            return $handler($request);
         }
     }
 }
