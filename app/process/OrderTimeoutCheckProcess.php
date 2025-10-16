@@ -497,8 +497,13 @@ class OrderTimeoutCheckProcess
                     'reason' => $reason
                 ]);
                 
-                // 触发商户回调通知（订单关闭）
-                $this->triggerMerchantCallback($orderId, $orderNo, $traceId);
+                // 注意：订单关闭时不触发商户回调，只有支付成功时才通知
+                Log::info('订单已关闭，不触发商户回调', [
+                    'trace_id' => $traceId,
+                    'order_id' => $orderId,
+                    'order_no' => $orderNo,
+                    'reason' => '订单关闭不通知商户'
+                ]);
             } else {
                 Db::rollBack();
                 

@@ -53,29 +53,24 @@ class MerchantNotificationService
      */
     public function notifyMerchantAsync(Order $order, array $callbackData = []): void
     {
-        // 检查是否已经通知成功（但允许状态变更时重新通知）
-        if ($order->notify_status == Order::NOTIFY_STATUS_SUCCESS) {
-            // 检查是否需要重新通知（状态变更）
-            $lastNotifyLog = NotifyLog::where('order_id', $order->id)
-                ->orderBy('created_at', 'desc')
-                ->first();
-            
-            if ($lastNotifyLog && $lastNotifyLog->request_data['status'] == $order->status) {
-                Log::info('订单已通知成功且状态未变更，跳过重复通知', [
-                    'order_no' => $order->order_no,
-                    'merchant_order_no' => $order->merchant_order_no,
-                    'current_status' => $order->status,
-                    'last_notify_status' => $lastNotifyLog->request_data['status']
-                ]);
-                return;
-            }
-            
-            Log::info('订单状态已变更，需要重新通知', [
+        // 只对支付成功状态发送通知，其他状态不通知
+        if ($order->status != Order::STATUS_SUCCESS) {
+            Log::info('订单状态不是支付成功，跳过通知', [
                 'order_no' => $order->order_no,
                 'merchant_order_no' => $order->merchant_order_no,
                 'current_status' => $order->status,
-                'last_notify_status' => $lastNotifyLog ? $lastNotifyLog->request_data['status'] : 'unknown'
+                'status_text' => $this->getStatusText($order->status)
             ]);
+            return;
+        }
+        
+        // 检查是否已经通知成功
+        if ($order->notify_status == Order::NOTIFY_STATUS_SUCCESS) {
+            Log::info('订单已通知成功，跳过重复通知', [
+                'order_no' => $order->order_no,
+                'merchant_order_no' => $order->merchant_order_no
+            ]);
+            return;
         }
 
         // 检查商户熔断状态
