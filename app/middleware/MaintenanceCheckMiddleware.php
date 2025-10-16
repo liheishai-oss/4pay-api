@@ -42,37 +42,13 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                 return $handler($request);
             }
             
-            // 屏蔽本地访问地址的维护状态验证
-            // 获取客户端IP地址
-            $clientIp = $request->getRealIp();
-            $serverIp = $_SERVER['SERVER_ADDR'] ?? '127.0.0.1';
-            
-            // 检查是否为本地访问
-            $isLocalAccess = (
-                // 本地回环地址
-                $clientIp === '127.0.0.1' ||
-                $clientIp === '::1' ||
-                $clientIp === 'localhost' ||
-                // 服务器本地IP
-                $clientIp === $serverIp ||
-                // 内网地址段
-                strpos($clientIp, '192.168.') === 0 ||
-                strpos($clientIp, '10.') === 0 ||
-                strpos($clientIp, '172.') === 0 ||
-                // 主机名匹配
-                $host === '127.0.0.1' ||
-                $host === 'localhost' ||
-                $host === $serverIp
-            );
-            
-            if ($isLocalAccess) {
-                Log::info('跳过本地访问地址的维护状态检查', [
-                    'client_ip' => $clientIp,
-                    'server_ip' => $serverIp,
+            // 屏蔽特定本地访问地址的维护状态验证
+            // 只允许 127.0.0.1:8787 和 localhost:8787 跳过维护检查
+            if (($host === '127.0.0.1' || $host === 'localhost') && $serverPort == 8787) {
+                Log::info('跳过特定本地访问地址的维护状态检查', [
                     'host' => $host,
                     'server_port' => $serverPort,
-                    'uri' => $uri,
-                    'is_local_access' => true
+                    'uri' => $uri
                 ]);
                 return $handler($request);
             }
@@ -124,9 +100,6 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                     ->header('Content-Type', 'text/plain')
                     ->header('Retry-After', '300'); // 5分钟后重试
             }
-
-            // 没有维护状态，继续处理请求
-            return $handler($request);
 
         } catch (\Exception $e) {
             Log::error('维护状态检查失败', [
