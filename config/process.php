@@ -76,5 +76,13 @@ return [
         'reloadable' => false,
         'count' => 1,
         'constructor' => []
+    ],
+
+    // 回调监控进程 - 定期检查未通知的订单
+    'callback_monitor' => [
+        'handler' => app\process\CallbackMonitorProcess::class,
+        'reloadable' => false,
+        'count' => 1,
+        'constructor' => []
     ]
 ];
