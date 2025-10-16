@@ -775,15 +775,8 @@ class OrderTimeoutCheckProcess
                 return;
             }
             
-            // 检查是否已经通知成功
-            if ($order->notify_status == Order::NOTIFY_STATUS_SUCCESS) {
-                Log::info('订单已通知成功，跳过重复回调', [
-                    'trace_id' => $traceId,
-                    'order_id' => $orderId,
-                    'order_no' => $orderNo
-                ]);
-                return;
-            }
+            // 注意：不检查notify_status，因为订单状态可能从成功变为关闭
+            // 商户通知服务会根据当前订单状态发送正确的通知
             
             Log::info('开始触发商户回调通知', [
                 'trace_id' => $traceId,
