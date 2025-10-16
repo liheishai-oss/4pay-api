@@ -272,6 +272,10 @@ class OrderTimeoutCheckProcess
                 $timeoutTime = date('Y-m-d H:i:s', time() - ($orderValidityMinutes * 60));
                 $isOrderTimeout = $order['created_at'] < $timeoutTime;
                 
+                // 检查是否超过30分钟强制超时
+                $forceTimeoutTime = date('Y-m-d H:i:s', time() - (30 * 60)); // 30分钟前
+                $isForceTimeout = $order['created_at'] < $forceTimeoutTime;
+                
                 Log::info('供应商订单未支付，判断是否关闭', [
                     'trace_id' => $traceId,
                     'order_no' => $orderNo,
@@ -282,14 +286,20 @@ class OrderTimeoutCheckProcess
                     'order_created_at' => $order['created_at'],
                     'timeout_time' => $timeoutTime,
                     'is_order_timeout' => $isOrderTimeout,
+                    'force_timeout_time' => $forceTimeoutTime,
+                    'is_force_timeout' => $isForceTimeout,
                     'current_order_status' => $order['status']
                 ]);
                 
-                // 订单超时直接关闭，不管供应商状态
-                if ($isOrderTimeout) {
+                // 订单超时或强制超时都关闭，不管供应商状态
+                if ($isOrderTimeout || $isForceTimeout) {
+                    $reason = $isForceTimeout ? 
+                        '订单超过30分钟强制超时，自动关闭：' . $result->getMessage() :
+                        '订单已超时，自动关闭：' . $result->getMessage();
+                    
                     return [
                         'should_close' => true,
-                        'reason' => '订单已超时，自动关闭：' . $result->getMessage()
+                        'reason' => $reason
                     ];
                 } else {
                     // 订单未超时，继续等待
