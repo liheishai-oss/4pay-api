@@ -302,6 +302,7 @@ class CallbackMonitorService
                 ->whereNotNull('paid_time') // 有支付时间
                 ->limit($limit)
                 ->get();
+            print_r($orders);
 
             $results = [];
             $successCount = 0;

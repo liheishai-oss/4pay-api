@@ -17,8 +17,15 @@ class CallbackMonitorProcess
      */
     public function onWorkerStart()
     {
+        print_r("检查回调启动");
+        Log::info('检查回调启动进程启动', [
+            'process_id' => getmypid(),
+            'start_time' => date('Y-m-d H:i:s')
+        ]);
+
         // 每30秒检查一次未通知的订单
-        Timer::add(30, function() {
+        new \Workerman\Crontab\Crontab('*/5 * * * * *', function(){
+            echo "开始检查回调订单";
             $this->checkUnnotifiedOrders();
         });
         
@@ -39,7 +46,7 @@ class CallbackMonitorProcess
             
             // 获取支付成功但5秒内没有通知的订单
             $result = $callbackMonitorService->fixUnnotifiedOrders(24, 3, 50); // 24小时内，支付成功状态，最多50个
-            
+            print_r($result);
             if ($result['total'] > 0) {
                 Log::info('回调监控：发现未通知订单', [
                     'total' => $result['total'],
@@ -74,6 +81,7 @@ class CallbackMonitorProcess
             }
             
         } catch (\Exception $e) {
+            echo $e->getMessage();
             Log::error('回调监控进程执行失败', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
