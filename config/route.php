@@ -15,6 +15,20 @@ Route::group('/api/v1/admin', function() {
     Route::add(['POST', 'OPTIONS'],'/upload', [app\admin\controller\v1\UploadController::class, 'upload']);
     Route::add(['POST', 'OPTIONS'],'/upload/images', [app\admin\controller\v1\UploadController::class, 'images']);
     
+    // 回调监控路由
+    Route::group('/callback-monitor', function () {
+        // 获取未通知订单列表
+        Route::add(['GET', 'OPTIONS'], '/unnotified-orders', [app\admin\controller\v1\CallbackMonitorController::class, 'getUnnotifiedOrders']);
+        // 手动触发订单通知
+        Route::add(['POST', 'OPTIONS'], '/trigger-notification', [app\admin\controller\v1\CallbackMonitorController::class, 'triggerNotification']);
+        // 批量触发通知
+        Route::add(['POST', 'OPTIONS'], '/batch-trigger-notification', [app\admin\controller\v1\CallbackMonitorController::class, 'batchTriggerNotification']);
+        // 获取通知统计信息
+        Route::add(['GET', 'OPTIONS'], '/notification-stats', [app\admin\controller\v1\CallbackMonitorController::class, 'getNotificationStats']);
+        // 修复未通知订单
+        Route::add(['POST', 'OPTIONS'], '/fix-unnotified-orders', [app\admin\controller\v1\CallbackMonitorController::class, 'fixUnnotifiedOrders']);
+    });
+    
     // 财务管理路由
     Route::group('/finance', function () {
         // 供应商余额变动记录
@@ -51,6 +65,18 @@ Route::group('/api/v1/admin', function() {
         Route::add(['GET', 'OPTIONS'], '', [app\admin\controller\v1\AdminLogController::class, 'index']);
         // 删除日志
         Route::add(['POST', 'OPTIONS'], '/delete', [app\admin\controller\v1\AdminLogController::class, 'destroy']);
+    });
+
+    // 系统配置
+    Route::group('/system/config', function () {
+        // 获取配置列表
+        Route::add(['GET', 'OPTIONS'], '/list', [app\admin\controller\v1\SystemConfigController::class, 'index']);
+        // 保存配置
+        Route::add(['POST', 'OPTIONS'], '/save', [app\admin\controller\v1\SystemConfigController::class, 'save']);
+        // 获取配置分组
+        Route::add(['GET', 'OPTIONS'], '/groups', [app\admin\controller\v1\SystemConfigController::class, 'getGroups']);
+        // 重置配置
+        Route::add(['POST', 'OPTIONS'], '/reset', [app\admin\controller\v1\SystemConfigController::class, 'reset']);
     });
 
 

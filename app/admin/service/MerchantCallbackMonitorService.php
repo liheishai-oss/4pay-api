@@ -52,38 +52,19 @@ class MerchantCallbackMonitorService
      * 获取队列状态
      * @return array
      */
-public function getQueueStatus(): array
+    public function getQueueStatus(): array
     {
         try {
-            // 获取通知队列状态
-            $notifyQueue = Redis::lLen('merchant_notify_pending_queue');
-            $retryQueue = Redis::zCard('merchant_notify_retry_queue');
-            $delayedQueue = Redis::zCard('merchant_notify_delayed_queue');
-            $failedQueue = Redis::lLen('merchant_notify_failed_queue') ?: 0;
-            
-            // 设置队列限制
-            $maxNotifyQueue = 1000;
-            $maxRetryQueue = 500;
-            $maxDelayedQueue = 200;
-            $maxFailedQueue = 100;
-            
-            // 获取处理进度状态
-            $processingStatus = \app\process\MerchantNotifyQueueProcess::getProcessingStatus();
+            // 获取三个队列中待处理的任务数量
+            $notifyQueue = Redis::lLen('merchant_notify_pending_queue');      // 待通知队列
+            $retryQueue = Redis::zCard('merchant_notify_retry_queue');        // 重试队列
+            $delayedQueue = Redis::zCard('merchant_notify_delayed_queue');    // 延迟队列
             
             return [
+                // 基础队列数据
                 'notifyQueue' => $notifyQueue,
                 'retryQueue' => $retryQueue,
                 'delayedQueue' => $delayedQueue,
-                'failedQueue' => $failedQueue,
-                'maxNotifyQueue' => $maxNotifyQueue,
-                'maxRetryQueue' => $maxRetryQueue,
-                'maxDelayedQueue' => $maxDelayedQueue,
-                'maxFailedQueue' => $maxFailedQueue,
-                'notifyQueuePercentage' => $notifyQueue > 0 ? round(($notifyQueue / $maxNotifyQueue) * 100, 2) : 0,
-                'retryQueuePercentage' => $retryQueue > 0 ? round(($retryQueue / $maxRetryQueue) * 100, 2) : 0,
-                'delayedQueuePercentage' => $delayedQueue > 0 ? round(($delayedQueue / $maxDelayedQueue) * 100, 2) : 0,
-                'failedQueuePercentage' => $failedQueue > 0 ? round(($failedQueue / $maxFailedQueue) * 100, 2) : 0,
-                'processingStatus' => $processingStatus,
                 'lastUpdate' => date('Y-m-d H:i:s')
             ];
         } catch (\Exception $e) {
@@ -96,16 +77,6 @@ public function getQueueStatus(): array
                 'notifyQueue' => 0,
                 'retryQueue' => 0,
                 'delayedQueue' => 0,
-                'failedQueue' => 0,
-                'maxNotifyQueue' => 1000,
-                'maxRetryQueue' => 500,
-                'maxDelayedQueue' => 200,
-                'maxFailedQueue' => 100,
-                'notifyQueuePercentage' => 0,
-                'retryQueuePercentage' => 0,
-                'delayedQueuePercentage' => 0,
-                'failedQueuePercentage' => 0,
-                'processingStatus' => null,
                 'lastUpdate' => date('Y-m-d H:i:s')
             ];
         }
@@ -1240,4 +1211,216 @@ public function getQueueStatus(): array
             ];
         }
     }
+
+    /**
+     * 获取队列性能指标
+     * @return array
+     */
+    private function getQueueMetrics(): array
+    {
+        try {
+            $now = time();
+            $oneHourAgo = $now - 3600;
+            
+            // 获取处理速度指标
+            $processedCount = Redis::get('merchant_queue_processed_count') ?: 0;
+            $processingRate = $this->calculateProcessingRate();
+            
+            // 获取平均处理时间
+            $avgProcessingTime = $this->getAverageProcessingTime();
+            
+            // 获取队列积压情况
+            $backlogAnalysis = $this->analyzeBacklog();
+            
+            // 获取吞吐量数据
+            $throughput = $this->getThroughputMetrics();
+            
+            return [
+                'processedCount' => (int)$processedCount,
+                'processingRate' => $processingRate,
+                'avgProcessingTime' => $avgProcessingTime,
+                'backlogAnalysis' => $backlogAnalysis,
+                'throughput' => $throughput,
+                'timestamp' => $now
+            ];
+        } catch (\Exception $e) {
+            Log::error('获取队列性能指标失败', [
+                'error' => $e->getMessage()
+            ]);
+            return [
+                'processedCount' => 0,
+                'processingRate' => 0,
+                'avgProcessingTime' => 0,
+                'backlogAnalysis' => null,
+                'throughput' => null,
+                'timestamp' => time()
+            ];
+        }
+    }
+
+
+
+
+    /**
+     * 获取队列健康状态
+     * @param int $notifyQueue
+     * @param int $retryQueue
+     * @param int $delayedQueue
+     * @param int $failedQueue
+     * @return array
+     */
+    private function getQueueHealthStatus(int $notifyQueue, int $retryQueue, int $delayedQueue, int $failedQueue): array
+    {
+        $healthScore = 100;
+        $issues = [];
+        $warnings = [];
+        
+        // 检查队列积压
+        if ($notifyQueue > 500) {
+            $healthScore -= 20;
+            $issues[] = '待通知队列积压严重';
+        } elseif ($notifyQueue > 200) {
+            $healthScore -= 10;
+            $warnings[] = '待通知队列积压';
+        }
+        
+        if ($retryQueue > 200) {
+            $healthScore -= 15;
+            $issues[] = '重试队列积压严重';
+        } elseif ($retryQueue > 100) {
+            $healthScore -= 5;
+            $warnings[] = '重试队列积压';
+        }
+        
+        if ($failedQueue > 50) {
+            $healthScore -= 25;
+            $issues[] = '失败队列积压严重';
+        } elseif ($failedQueue > 20) {
+            $healthScore -= 10;
+            $warnings[] = '失败队列积压';
+        }
+        
+        // 确定健康状态
+        if ($healthScore >= 90) {
+            $status = 'healthy';
+            $statusText = '健康';
+        } elseif ($healthScore >= 70) {
+            $status = 'warning';
+            $statusText = '警告';
+        } else {
+            $status = 'critical';
+            $statusText = '严重';
+        }
+        
+        return [
+            'status' => $status,
+            'statusText' => $statusText,
+            'healthScore' => max(0, $healthScore),
+            'issues' => $issues,
+            'warnings' => $warnings,
+            'timestamp' => time()
+        ];
+    }
+
+    /**
+     * 计算处理速度
+     * @return float
+     */
+    private function calculateProcessingRate(): float
+    {
+        try {
+            $now = time();
+            $oneHourAgo = $now - 3600;
+            
+            $processedCount = Redis::get('merchant_queue_processed_count') ?: 0;
+            $rate = $processedCount / 3600; // 每秒处理数量
+            
+            return round($rate, 2);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * 获取平均处理时间
+     * @return float
+     */
+    private function getAverageProcessingTime(): float
+    {
+        try {
+            $avgTime = Redis::get('merchant_queue_avg_processing_time');
+            return $avgTime ? (float)$avgTime : 0;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * 分析积压情况
+     * @return array
+     */
+    private function analyzeBacklog(): array
+    {
+        try {
+            $now = time();
+            $backlogData = [];
+            
+            // 分析待通知队列积压
+            $pendingItems = Redis::lRange('merchant_notify_pending_queue', 0, 9);
+            $oldestItem = null;
+            $newestItem = null;
+            
+            foreach ($pendingItems as $item) {
+                $data = json_decode($item, true);
+                if ($data && isset($data['created_at'])) {
+                    if (!$oldestItem || $data['created_at'] < $oldestItem) {
+                        $oldestItem = $data['created_at'];
+                    }
+                    if (!$newestItem || $data['created_at'] > $newestItem) {
+                        $newestItem = $data['created_at'];
+                    }
+                }
+            }
+            
+            $backlogData['oldestItemAge'] = $oldestItem ? ($now - $oldestItem) : 0;
+            $backlogData['newestItemAge'] = $newestItem ? ($now - $newestItem) : 0;
+            $backlogData['avgAge'] = $oldestItem && $newestItem ? (($now - $oldestItem) + ($now - $newestItem)) / 2 : 0;
+            
+            return $backlogData;
+        } catch (\Exception $e) {
+            return [
+                'oldestItemAge' => 0,
+                'newestItemAge' => 0,
+                'avgAge' => 0
+            ];
+        }
+    }
+
+    /**
+     * 获取吞吐量指标
+     * @return array
+     */
+    private function getThroughputMetrics(): array
+    {
+        try {
+            $now = time();
+            $oneHourAgo = $now - 3600;
+            
+            $throughput = Redis::get('merchant_queue_throughput');
+            $throughputData = $throughput ? json_decode($throughput, true) : [
+                'requests_per_second' => 0,
+                'peak_throughput' => 0,
+                'avg_throughput' => 0
+            ];
+            
+            return $throughputData;
+        } catch (\Exception $e) {
+            return [
+                'requests_per_second' => 0,
+                'peak_throughput' => 0,
+                'avg_throughput' => 0
+            ];
+        }
+    }
+
 }

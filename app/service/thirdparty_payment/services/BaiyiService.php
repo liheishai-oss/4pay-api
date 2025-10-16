@@ -22,7 +22,7 @@ class BaiyiService extends AbstractUnifiedPaymentService
     public function __construct(array $config = [])
     {
         parent::__construct($config);
-        print_r($config);
+//        print_r($config);
         // Baiyi支付配置参数 - 优先从传入的配置获取，然后从配置文件获取
         $this->gatewayUrl = $config['gateway_url'] ?? config('Baiyi.gateway_url', '');
         $this->pid = (string)($config['pid'] ?? config('Baiyi.pid', ''));

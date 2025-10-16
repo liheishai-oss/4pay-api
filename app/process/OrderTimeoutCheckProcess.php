@@ -99,16 +99,43 @@ class OrderTimeoutCheckProcess
     }
     
     /**
-     * 处理超时订单
+     * 处理超时订单（批量处理）
      * @param array $timeoutOrders
      * @param string $traceId
      */
     private function processTimeoutOrders(array $timeoutOrders, string $traceId): void
     {
+        $totalCount = count($timeoutOrders);
+        $successCount = 0;
+        $errorCount = 0;
+        $closeCount = 0;
+        $skipCount = 0;
+        
+        Log::info('开始批量处理超时订单', [
+            'trace_id' => $traceId,
+            'total_count' => $totalCount,
+            'batch_size' => $totalCount
+        ]);
+        
+        $startTime = microtime(true);
+        
         foreach ($timeoutOrders as $order) {
             try {
-                $this->processSingleTimeoutOrder($order, $traceId);
+                $result = $this->processSingleTimeoutOrder($order, $traceId);
+                
+                if ($result['processed']) {
+                    $successCount++;
+                    if ($result['closed']) {
+                        $closeCount++;
+                    } else {
+                        $skipCount++;
+                    }
+                } else {
+                    $skipCount++;
+                }
+                
             } catch (\Exception $e) {
+                $errorCount++;
                 Log::error('处理单个订单失败', [
                     'trace_id' => $traceId,
                     'order_id' => $order['id'],
@@ -117,14 +144,29 @@ class OrderTimeoutCheckProcess
                 ]);
             }
         }
+        
+        $endTime = microtime(true);
+        $processingTime = round(($endTime - $startTime) * 1000, 2); // 毫秒
+        
+        Log::info('批量处理超时订单完成', [
+            'trace_id' => $traceId,
+            'total_count' => $totalCount,
+            'success_count' => $successCount,
+            'error_count' => $errorCount,
+            'close_count' => $closeCount,
+            'skip_count' => $skipCount,
+            'processing_time_ms' => $processingTime,
+            'avg_time_per_order_ms' => $totalCount > 0 ? round($processingTime / $totalCount, 2) : 0
+        ]);
     }
     
     /**
      * 处理单个超时订单
      * @param array $order
      * @param string $traceId
+     * @return array 处理结果
      */
-    private function processSingleTimeoutOrder(array $order, string $traceId): void
+    private function processSingleTimeoutOrder(array $order, string $traceId): array
     {
         $orderId = $order['id'];
         $orderNo = $order['order_no'];
@@ -164,9 +206,19 @@ class OrderTimeoutCheckProcess
                     'supplier_reason' => $supplierStatus['reason']
                 ]);
                 // 这里不需要调用updateOrderToSuccess，因为checkSupplierOrderStatus已经处理了
+                return [
+                    'processed' => true,
+                    'closed' => false,
+                    'action' => 'updated_to_success'
+                ];
             } else {
                 // 关闭订单
                 $this->closeTimeoutOrder($orderId, $orderNo, $supplierStatus['reason'], $traceId);
+                return [
+                    'processed' => true,
+                    'closed' => true,
+                    'action' => 'closed'
+                ];
             }
         } else {
             Log::info('供应商订单状态正常，不关闭订单', [
@@ -175,6 +227,11 @@ class OrderTimeoutCheckProcess
                 'order_no' => $orderNo,
                 'supplier_status' => $supplierStatus
             ]);
+            return [
+                'processed' => true,
+                'closed' => false,
+                'action' => 'skipped'
+            ];
         }
     }
     
@@ -267,10 +324,11 @@ class OrderTimeoutCheckProcess
                     'reason' => '供应商订单已支付成功'
                 ];
             } else {
-                // 供应商订单未支付，需要判断是否应该关闭
-                $orderValidityMinutes = $this->getOrderValidityMinutes();
-                $timeoutTime = date('Y-m-d H:i:s', time() - ($orderValidityMinutes * 60));
-                $isOrderTimeout = $order['created_at'] < $timeoutTime;
+                // 供应商订单未支付，检查关闭条件
+                $forceTimeoutMinutes = $this->getForceTimeoutMinutes(); // 获取强制超时配置
+                $forceTimeoutTime = date('Y-m-d H:i:s', time() - ($forceTimeoutMinutes * 60));
+                $isForceTimeout = $order['created_at'] < $forceTimeoutTime;
+                $isSupplierFailed = $result->getStatus() === 'failed';
                 
                 Log::info('供应商订单未支付，判断是否关闭', [
                     'trace_id' => $traceId,
@@ -280,24 +338,28 @@ class OrderTimeoutCheckProcess
                     'message' => $result->getMessage(),
                     'is_success' => $result->isSuccess(),
                     'order_created_at' => $order['created_at'],
-                    'timeout_time' => $timeoutTime,
-                    'is_order_timeout' => $isOrderTimeout,
+                    'force_timeout_minutes' => $forceTimeoutMinutes,
+                    'force_timeout_time' => $forceTimeoutTime,
+                    'is_force_timeout' => $isForceTimeout,
+                    'is_supplier_failed' => $isSupplierFailed,
                     'current_order_status' => $order['status']
                 ]);
                 
-                // 只有在订单超时且供货商明确返回失败状态时才关闭
-                if ($isOrderTimeout && $result->getStatus() === 'failed') {
+                // 强制超时 或 供应商明确失败状态时关闭
+                if ($isForceTimeout || $isSupplierFailed) {
+                    $reason = $isForceTimeout ? 
+                        "订单超过{$forceTimeoutMinutes}分钟强制超时，自动关闭：" . $result->getMessage() :
+                        '供应商订单明确失败，自动关闭：' . $result->getMessage();
+                    
                     return [
                         'should_close' => true,
-                        'reason' => '订单已超时且供货商返回失败状态：' . $result->getMessage()
+                        'reason' => $reason
                     ];
                 } else {
-                    // 订单未超时或供货商状态不是失败，不关闭
+                    // 订单未超时且供应商状态正常，继续等待
                     return [
                         'should_close' => false,
-                        'reason' => $isOrderTimeout ? 
-                            '订单已超时但供货商状态不是失败，等待下次检查' : 
-                            '订单未超时，继续等待'
+                        'reason' => '订单未超时且供应商状态正常，继续等待'
                     ];
                 }
             }
@@ -496,6 +558,14 @@ class OrderTimeoutCheckProcess
                     'new_status_text' => '已关闭',
                     'reason' => $reason
                 ]);
+                
+                // 注意：订单关闭时不触发商户回调，只有支付成功时才通知
+                Log::info('订单已关闭，不触发商户回调', [
+                    'trace_id' => $traceId,
+                    'order_id' => $orderId,
+                    'order_no' => $orderNo,
+                    'reason' => '订单关闭不通知商户'
+                ]);
             } else {
                 Db::rollBack();
                 
@@ -537,6 +607,27 @@ class OrderTimeoutCheckProcess
             }
         } catch (\Exception $e) {
             Log::warning('获取订单有效期配置失败，使用默认值', [
+                'error' => $e->getMessage()
+            ]);
+        }
+        
+        // 默认30分钟
+        return 30;
+    }
+    
+    /**
+     * 获取强制超时配置（分钟）
+     * @return int
+     */
+    private function getForceTimeoutMinutes(): int
+    {
+        try {
+            $config = SystemConfig::where('config_key', 'payment.force_timeout_minutes')->first();
+            if ($config) {
+                return (int)$config->config_value;
+            }
+        } catch (\Exception $e) {
+            Log::warning('获取强制超时配置失败，使用默认值', [
                 'error' => $e->getMessage()
             ]);
         }
@@ -772,15 +863,8 @@ class OrderTimeoutCheckProcess
                 return;
             }
             
-            // 检查是否已经通知成功
-            if ($order->notify_status == Order::NOTIFY_STATUS_SUCCESS) {
-                Log::info('订单已通知成功，跳过重复回调', [
-                    'trace_id' => $traceId,
-                    'order_id' => $orderId,
-                    'order_no' => $orderNo
-                ]);
-                return;
-            }
+            // 注意：不检查notify_status，因为订单状态可能从成功变为关闭
+            // 商户通知服务会根据当前订单状态发送正确的通知
             
             Log::info('开始触发商户回调通知', [
                 'trace_id' => $traceId,

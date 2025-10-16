@@ -25,14 +25,26 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
         try {
             // 只对API请求进行维护状态检查，跳过前端页面请求
             $uri = $request->uri();
+            $host = $request->host();
+            echo "检查维护状态:{$host}";
+            $serverPort = $_SERVER['SERVER_PORT'] ?? null;
+            
             Log::info('维护状态检查中间件开始', [
                 'uri' => $uri,
+                'host' => $host,
+                'server_port' => $serverPort,
                 'is_api' => str_starts_with($uri, '/api/'),
                 'method' => $request->method()
             ]);
             
-            // 跳过非API请求
-            if (!str_starts_with($uri, '/api/')) {
+            // 屏蔽特定本地访问地址的维护状态验证
+            // 只允许 127.0.0.1:8787 和 localhost:8787 跳过维护检查
+            if ($host === '127.0.0.1:8787' || $host === 'localhost:8787') {
+                Log::info('跳过特定本地访问地址的维护状态检查', [
+                    'host' => $host,
+                    'server_port' => $serverPort,
+                    'uri' => $uri
+                ]);
                 return $handler($request);
             }
             

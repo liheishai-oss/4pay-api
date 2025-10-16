@@ -53,6 +53,17 @@ class MerchantNotificationService
      */
     public function notifyMerchantAsync(Order $order, array $callbackData = []): void
     {
+        // 只对支付成功状态发送通知，其他状态不通知
+        if ($order->status != Order::STATUS_SUCCESS) {
+            Log::info('订单状态不是支付成功，跳过通知', [
+                'order_no' => $order->order_no,
+                'merchant_order_no' => $order->merchant_order_no,
+                'current_status' => $order->status,
+                'status_text' => $this->getStatusText($order->status)
+            ]);
+            return;
+        }
+        
         // 检查是否已经通知成功
         if ($order->notify_status == Order::NOTIFY_STATUS_SUCCESS) {
             Log::info('订单已通知成功，跳过重复通知', [
@@ -360,12 +371,12 @@ class MerchantNotificationService
      */
     private function updateNotifyLog(NotifyLog $notifyLog, int $httpCode, string $responseBody, bool $isSuccess): void
     {
-        $notifyLog->update([
-            'response_data' => $responseBody,
-            'http_code' => $httpCode,
-            'status' => $isSuccess ? NotifyLog::STATUS_SUCCESS : NotifyLog::STATUS_FAILED,
-            'retry_count' => $notifyLog->retry_count + 1
-        ]);
+        // 直接更新字段，避免updated_at字段问题
+        $notifyLog->response_data = $responseBody;
+        $notifyLog->http_code = $httpCode;
+        $notifyLog->status = $isSuccess ? NotifyLog::STATUS_SUCCESS : NotifyLog::STATUS_FAILED;
+        $notifyLog->retry_count = $notifyLog->retry_count + 1;
+        $notifyLog->save();
     }
 
     /**
