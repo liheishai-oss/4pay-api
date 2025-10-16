@@ -67,6 +67,18 @@ Route::group('/api/v1/admin', function() {
         Route::add(['POST', 'OPTIONS'], '/delete', [app\admin\controller\v1\AdminLogController::class, 'destroy']);
     });
 
+    // 系统配置
+    Route::group('/system/config', function () {
+        // 获取配置列表
+        Route::add(['GET', 'OPTIONS'], '/list', [app\admin\controller\v1\SystemConfigController::class, 'index']);
+        // 保存配置
+        Route::add(['POST', 'OPTIONS'], '/save', [app\admin\controller\v1\SystemConfigController::class, 'save']);
+        // 获取配置分组
+        Route::add(['GET', 'OPTIONS'], '/groups', [app\admin\controller\v1\SystemConfigController::class, 'getGroups']);
+        // 重置配置
+        Route::add(['POST', 'OPTIONS'], '/reset', [app\admin\controller\v1\SystemConfigController::class, 'reset']);
+    });
+
 
 
 
