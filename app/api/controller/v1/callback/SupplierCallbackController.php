@@ -469,6 +469,9 @@ class SupplierCallbackController
                 'payment_name' => $paymentName
             ]);
             
+            // 触发商户通知
+            $this->triggerMerchantNotification($order, $paymentName);
+            
             // 释放锁
             \support\Redis::del($lockKey);
             
@@ -488,6 +491,59 @@ class SupplierCallbackController
             }
             
             return false;
+        }
+    }
+    
+    /**
+     * 触发商户通知
+     * @param \app\model\Order $order
+     * @param string $paymentName
+     * @return void
+     */
+    private function triggerMerchantNotification(\app\model\Order $order, string $paymentName): void
+    {
+        try {
+            // 检查是否有通知地址
+            if (empty($order->notify_url)) {
+                \support\Log::info('SupplierCallbackController 订单无通知地址，跳过商户通知', [
+                    'order_no' => $order->order_no,
+                    'payment_name' => $paymentName
+                ]);
+                return;
+            }
+            
+            // 检查是否已经通知成功
+            if ($order->notify_status == \app\model\Order::NOTIFY_STATUS_SUCCESS) {
+                \support\Log::info('SupplierCallbackController 订单已通知成功，跳过重复通知', [
+                    'order_no' => $order->order_no,
+                    'payment_name' => $paymentName
+                ]);
+                return;
+            }
+            
+            \support\Log::info('SupplierCallbackController 开始触发商户通知', [
+                'order_no' => $order->order_no,
+                'merchant_order_no' => $order->merchant_order_no,
+                'notify_url' => $order->notify_url,
+                'payment_name' => $paymentName
+            ]);
+            
+            // 使用商户通知服务触发回调
+            $notificationService = new \app\service\notification\MerchantNotificationService();
+            $notificationService->notifyMerchantAsync($order);
+            
+            \support\Log::info('SupplierCallbackController 商户通知已触发', [
+                'order_no' => $order->order_no,
+                'payment_name' => $paymentName
+            ]);
+            
+        } catch (\Exception $e) {
+            \support\Log::error('SupplierCallbackController 触发商户通知失败', [
+                'order_no' => $order->order_no,
+                'payment_name' => $paymentName,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
     }
     
