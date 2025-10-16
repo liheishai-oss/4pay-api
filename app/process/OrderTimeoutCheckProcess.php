@@ -496,6 +496,9 @@ class OrderTimeoutCheckProcess
                     'new_status_text' => '已关闭',
                     'reason' => $reason
                 ]);
+                
+                // 触发商户回调通知（订单关闭）
+                $this->triggerMerchantCallback($orderId, $orderNo, $traceId);
             } else {
                 Db::rollBack();
                 
