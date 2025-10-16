@@ -8,9 +8,6 @@ class NotifyLog extends Model
 {
     protected $table = 'notify_log';
     
-    // 禁用时间戳，因为数据库表中没有 updated_at 字段
-    public $timestamps = false;
-    
     protected $fillable = [
         'order_id',
         'notify_url',

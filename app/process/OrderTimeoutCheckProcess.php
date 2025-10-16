@@ -285,19 +285,17 @@ class OrderTimeoutCheckProcess
                     'current_order_status' => $order['status']
                 ]);
                 
-                // 只有在订单超时且供货商明确返回失败状态时才关闭
-                if ($isOrderTimeout && $result->getStatus() === 'failed') {
+                // 订单超时直接关闭，不管供应商状态
+                if ($isOrderTimeout) {
                     return [
                         'should_close' => true,
-                        'reason' => '订单已超时且供货商返回失败状态：' . $result->getMessage()
+                        'reason' => '订单已超时，自动关闭：' . $result->getMessage()
                     ];
                 } else {
-                    // 订单未超时或供货商状态不是失败，不关闭
+                    // 订单未超时，继续等待
                     return [
                         'should_close' => false,
-                        'reason' => $isOrderTimeout ? 
-                            '订单已超时但供货商状态不是失败，等待下次检查' : 
-                            '订单未超时，继续等待'
+                        'reason' => '订单未超时，继续等待'
                     ];
                 }
             }
