@@ -27,7 +27,6 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
             $uri = $request->uri();
             $host = $request->host();
             $serverPort = $_SERVER['SERVER_PORT'] ?? null;
-            $requestUri = $_SERVER['REQUEST_URI'] ?? '';
             
             Log::info('维护状态检查中间件开始', [
                 'uri' => $uri,
@@ -100,6 +99,9 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                     ->header('Content-Type', 'text/plain')
                     ->header('Retry-After', '300'); // 5分钟后重试
             }
+
+            // 没有维护状态，继续处理请求
+            return $handler($request);
 
         } catch (\Exception $e) {
             Log::error('维护状态检查失败', [
