@@ -371,12 +371,12 @@ class MerchantNotificationService
      */
     private function updateNotifyLog(NotifyLog $notifyLog, int $httpCode, string $responseBody, bool $isSuccess): void
     {
-        $notifyLog->update([
-            'response_data' => $responseBody,
-            'http_code' => $httpCode,
-            'status' => $isSuccess ? NotifyLog::STATUS_SUCCESS : NotifyLog::STATUS_FAILED,
-            'retry_count' => $notifyLog->retry_count + 1
-        ]);
+        // 直接更新字段，避免updated_at字段问题
+        $notifyLog->response_data = $responseBody;
+        $notifyLog->http_code = $httpCode;
+        $notifyLog->status = $isSuccess ? NotifyLog::STATUS_SUCCESS : NotifyLog::STATUS_FAILED;
+        $notifyLog->retry_count = $notifyLog->retry_count + 1;
+        $notifyLog->save();
     }
 
     /**
