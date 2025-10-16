@@ -158,8 +158,37 @@ class OrderManagementController
     public function statistics(Request $request): Response
     {
         try {
+            // 直接获取URL参数，支持多种参数格式
+            $searchParams = [];
+            
+            // 获取各个搜索参数
+            if ($request->get('order_no')) {
+                $searchParams['order_no'] = $request->get('order_no');
+            }
+            if ($request->get('merchant_order_no')) {
+                $searchParams['merchant_order_no'] = $request->get('merchant_order_no');
+            }
+            if ($request->get('merchant_id')) {
+                $searchParams['merchant_id'] = $request->get('merchant_id');
+            }
+            if ($request->get('status') !== null && $request->get('status') !== '') {
+                $searchParams['status'] = $request->get('status');
+            }
+            if ($request->get('start_time')) {
+                $searchParams['start_time'] = $request->get('start_time');
+            }
+            if ($request->get('end_time')) {
+                $searchParams['end_time'] = $request->get('end_time');
+            }
+            
+            // 兼容原有的JSON格式参数
             $search = $request->get('search', '{}');
-            $searchParams = json_decode($search, true) ?: [];
+            if ($search && $search !== '{}') {
+                $jsonParams = json_decode($search, true);
+                if ($jsonParams && is_array($jsonParams)) {
+                    $searchParams = array_merge($searchParams, $jsonParams);
+                }
+            }
             
             $result = $this->orderService->getOrderStatistics($searchParams);
             
