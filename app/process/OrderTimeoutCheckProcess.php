@@ -541,6 +541,7 @@ class OrderTimeoutCheckProcess
                 ->whereIn('status', [1, 2]) // 只更新待支付和支付中的订单
                 ->update([
                     'status' => 6, // 6-已关闭
+                    'closed_time' => date('Y-m-d H:i:s'), // 记录关闭时间
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
             
