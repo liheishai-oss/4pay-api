@@ -39,7 +39,7 @@ class EditAdminController
             
             return success([], '更新管理员成功');
         } catch (Throwable $e) {
-            return error($e->getMessage(), $e->getCode() ?: 400);
+            return error($e->getMessage(), (int)($e->getCode() ?: 400));
         }
     }
 
@@ -64,7 +64,7 @@ class EditAdminController
             
             return success(['count' => $count], "批量更新状态成功，共更新{$count}条记录");
         } catch (Throwable $e) {
-            return error($e->getMessage(), $e->getCode() ?: 400);
+            return error($e->getMessage(), (int)($e->getCode() ?: 400));
         }
     }
 }

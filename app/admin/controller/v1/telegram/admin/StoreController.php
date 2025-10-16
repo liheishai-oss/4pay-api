@@ -33,7 +33,7 @@ class StoreController
             
             return success([], '创建管理员成功');
         } catch (Throwable $e) {
-            return error($e->getMessage(), $e->getCode() ?: 400);
+            return error($e->getMessage(), (int)($e->getCode() ?: 400));
         }
     }
 }

@@ -24,7 +24,7 @@ class AdminAuthRepository
     public function getGoogle2FASecret(int $userId): ?string
     {
         return SystemConfig::where('config_key', 'google_2fa_secret')
-            ->where('user_id', $userId)
+            ->where('merchant_id', $userId)
             ->value('config_value');
     }
 

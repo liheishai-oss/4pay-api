@@ -31,9 +31,6 @@ class IndexService
                 if (isset($search['status']) && $search['status'] !== '') {
                     $query->where('status', $search['status']);
                 }
-                if (!empty($search['withdraw_config_type'])) {
-                    $query->where('withdraw_config_type', $search['withdraw_config_type']);
-                }
             }
         }
 

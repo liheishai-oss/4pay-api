@@ -73,17 +73,8 @@ class EditService
             if (isset($data['status'])) {
                 $merchant->status = $data['status'];
             }
-            if (isset($data['withdraw_fee'])) {
-                $merchant->withdraw_fee = $data['withdraw_fee'];
-            }
             if (isset($data['admin_id'])) {
                 $merchant->admin_id = $data['admin_id'];
-            }
-            if (isset($data['withdraw_config_type'])) {
-                $merchant->withdraw_config_type = $data['withdraw_config_type'];
-            }
-            if (isset($data['withdraw_rate'])) {
-                $merchant->withdraw_rate = $data['withdraw_rate'];
             }
             if (isset($data['merchant_key'])) {
                 $merchant->merchant_key = $data['merchant_key'];

@@ -26,7 +26,7 @@
                 $data = $this->loginService->login($param);
                 return success($data, '登录成功',200,$data);
             } catch (Throwable $e) {
-                return error($e->getMessage(), $e->getCode() ?: 400);
+                return error($e->getMessage(), (int)($e->getCode() ?: 400));
             }
         }
     }

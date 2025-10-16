@@ -30,7 +30,7 @@ class StatusSwitchController
             $statusText = $admin->status === 1 ? '启用' : '禁用';
             return success([], "管理员状态已切换为：{$statusText}");
         } catch (Throwable $e) {
-            return error($e->getMessage(), $e->getCode() ?: 400);
+            return error($e->getMessage(), (int)($e->getCode() ?: 400));
         }
     }
 }

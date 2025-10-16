@@ -39,10 +39,7 @@ class StoreService
             $merchant->login_account = $data['login_account'];
             $merchant->merchant_name = $data['merchant_name'] ?? $data['login_account']; // 如果没有提供商户名称，使用登录账号
             $merchant->status = $data['status'] ?? Merchant::STATUS_ENABLED;
-            $merchant->withdraw_fee = $data['withdraw_fee'] ?? 0;
             $merchant->admin_id = $admin ? $admin->id : null;
-            $merchant->withdraw_config_type = $data['withdraw_config_type'] ?? Merchant::WITHDRAW_CONFIG_SYSTEM_RULE;
-            $merchant->withdraw_rate = $data['withdraw_rate'] ?? 0;
             $merchant->merchant_key = $this->generateMerchantKey();
             $merchant->merchant_secret = $this->generateMerchantSecret();
             // 将|分隔的字符串转换为数组
