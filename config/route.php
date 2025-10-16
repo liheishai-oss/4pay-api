@@ -9,7 +9,9 @@ Route::group('/api/v1/admin', function() {
     Route::add(['GET', 'OPTIONS'], '/google-auth/qrcode/{secret}', [app\admin\controller\v1\GoogleAuthController::class, 'generateQrCode']);
     Route::add(['GET', 'OPTIONS'], '/system/rule', [app\admin\controller\v1\MenuRuleController::class, 'rule']);
 
-
+    Route::add(['GET', 'OPTIONS'], '/dashboard/ranking', [app\admin\controller\v1\DashboardController::class, 'getChannelRanking']);
+    // 测试路由
+    Route::add(['GET', 'OPTIONS'], '/test/server-list', [app\admin\controller\v1\TestController::class, 'serverList']);
     Route::add(['POST', 'OPTIONS'],'/upload', [app\admin\controller\v1\UploadController::class, 'upload']);
     Route::add(['POST', 'OPTIONS'],'/upload/images', [app\admin\controller\v1\UploadController::class, 'images']);
     
@@ -279,13 +281,10 @@ Route::group('/api/v1/admin', function() {
         Route::add(['GET', 'OPTIONS'], '/queue-status', [app\admin\controller\v1\MerchantCallbackMonitorController::class, 'getQueueStatus']);
     });
 
-    // 测试路由
-    Route::add(['GET', 'OPTIONS'], '/admin/test/server-list', [app\admin\controller\v1\TestController::class, 'serverList']);
     
     // Dashboard 路由
     Route::add(['GET', 'OPTIONS'], '/dashboard/stats', [app\admin\controller\v1\DashboardController::class, 'getTodayStats']);
     Route::add(['GET', 'OPTIONS'], '/dashboard/trend', [app\admin\controller\v1\DashboardController::class, 'getOrderTrend']);
-    Route::add(['GET', 'OPTIONS'], '/dashboard/ranking', [app\admin\controller\v1\DashboardController::class, 'getChannelRanking']);
     Route::add(['GET', 'OPTIONS'], '/dashboard/data', [app\admin\controller\v1\DashboardController::class, 'getDashboardData']);
     
     // 权限测试路由
