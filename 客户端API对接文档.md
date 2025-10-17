@@ -20,28 +20,19 @@
 POST `/api/v1/order/create`
 
 请求参数（JSON）：
-```json
-{
-  "order_no": "自定义系统内唯一订单号，可选",
-  "merchant_order_no": "商户侧订单号（可选）",
-  "amount": 100,
-  "notify_url": "https://merchant.example.com/notify",
-  "return_url": "https://merchant.example.com/return",
-  "product_code": "10001",
-  "channel_id": 11,
-  "extra": {"remark": "可选扩展"},
-  "timestamp": 1760622000,
-  "sign": "签名" 
-}
-```
 
-参数说明：
-- amount：金额，单位分（必填）
-- notify_url：异步通知地址（强烈建议提供，便于支付成功后回调）
-- return_url：同步跳转地址（可选）
-- product_code / channel_id：产品或通道识别（依据分配）
-- timestamp：时间戳，单位秒
-- sign：签名，见“签名规则”
+| 字段 | 类型 | 必填 | 说明 | 示例 |
+| - | - | - | - | - |
+| order_no | string | 否 | 系统内自定义订单号（唯一），不传则由平台生成 | BY20251016204701C4CA1207 |
+| merchant_order_no | string | 否 | 商户侧订单号 | M202510160001 |
+| amount | int | 是 | 金额（分） | 100 |
+| notify_url | string | 是 | 异步通知地址（支付成功回调） | https://merchant.example.com/notify |
+| return_url | string | 否 | 同步跳转地址 | https://merchant.example.com/return |
+| product_code | string | 否 | 产品编码（与通道二选一，按分配） | 10001 |
+| channel_id | int | 否 | 通道ID（与产品编码二选一，按分配） | 11 |
+| extra | object | 否 | 扩展参数 | {"remark":"test"} |
+| timestamp | int | 是 | 时间戳（秒） | 1760622000 |
+| sign | string | 是 | 签名，见签名规则 | 9f1c... |
 
 返回示例：
 ```json
@@ -65,9 +56,13 @@ POST `/api/v1/order/create`
 GET `/api/v1/order/query`
 
 请求参数（Query）：
-```
-order_no=BY20251016204701C4CA1207&merchant_order_no=xxx&timestamp=1760622000&sign=签名
-```
+
+| 字段 | 类型 | 必填 | 说明 | 示例 |
+| - | - | - | - | - |
+| order_no | string | 否 | 平台订单号（与 merchant_order_no 二选一） | BY20251016204701C4CA1207 |
+| merchant_order_no | string | 否 | 商户订单号（与 order_no 二选一） | M202510160001 |
+| timestamp | int | 是 | 时间戳（秒） | 1760622000 |
+| sign | string | 是 | 签名，见签名规则 | 9f1c... |
 
 返回示例：
 ```json
@@ -91,20 +86,18 @@ order_no=BY20251016204701C4CA1207&merchant_order_no=xxx&timestamp=1760622000&sig
 ## 三、异步回调（服务端通知）
 当订单支付成功后，系统会向商户的 `notify_url` 以 `POST` 发送 JSON：
 
-```json
-{
-  "order_no": "BY20251016204701C4CA1207",
-  "merchant_order_no": "978-0-461-13992-1",
-  "third_party_order_no": "P732025101620470175221",
-  "amount": 100,
-  "status": 3,
-  "status_text": "支付成功",
-  "paid_time": "2025-10-16T12:49:52.000000Z",
-  "timestamp": 1760622065,
-  "callback_data": {},
-  "sign": "签名"
-}
-```
+| 字段 | 类型 | 说明 | 示例 |
+| - | - | - | - |
+| order_no | string | 平台订单号 | BY20251016204701C4CA1207 |
+| merchant_order_no | string | 商户订单号 | M202510160001 |
+| third_party_order_no | string | 三方平台订单号 | P732025101620470175221 |
+| amount | int | 金额（分） | 100 |
+| status | int | 订单状态：3=支付成功 | 3 |
+| status_text | string | 状态文本 | 支付成功 |
+| paid_time | string | 支付时间（ISO8601或`YYYY-MM-DD HH:mm:ss`） | 2025-10-16T12:49:52.000000Z |
+| timestamp | int | 时间戳（秒） | 1760622065 |
+| callback_data | object | 回传原始数据（如有） | {} |
+| sign | string | 回调签名 | 9f1c... |
 
 商户接收后需返回纯文本：`success`（大小写均可）。
 - 返回非 `success`、5xx、超时等会被视为失败，系统带有重试与监控补偿。
