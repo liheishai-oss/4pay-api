@@ -5,8 +5,8 @@
 ### 环境与基础信息
 - 基础路径：`/api/v1`
 - 编码：UTF-8，`application/json`
-- 时间格式：`YYYY-MM-DD HH:mm:ss`（或 ISO8601）
-- 金额单位：元（保留两位小数）
+- 时间格式：`YYYY-MM-DD HH:mm:ss`
+- 金额单位：元
 
 ### 鉴权
 商户服务端接口通过签名（sign）与密钥进行校验，详见“签名规则”。
@@ -21,10 +21,10 @@ POST `/api/v1/order/create`
 | 字段 | 类型 | 必填 | 说明 | 示例 |
 | - | - | - | - | - |
 | merchant_key | string | 是 | 商户唯一标识 | MCH_68F0E79CA6E42_20251016 |
-| nonce | string | 否 | 随机字符串/防重放（如使用） | 978-0-461-13992-1 |
-| merchant_order_no | string | 是 | 商户订单号（6-64位，字母数字或下划线） | 978-0-461-13992-1 |
-| order_amount | string | 是 | 订单金额（元，支持两位小数） | 1.00 |
-| product_code | string | 是 | 产品编码（按分配；无需传通道） | "8416" |
+| nonce | string | 是 | 随机不重复字符串 | 978-0-461-13992-1 |
+| merchant_order_no | string | 是 | 商户订单号 | 978-0-461-13992-1 |
+| order_amount | string | 是 | 订单金额 | 1.00 |
+| product_code | string | 是 | 产品编码 | "8416" |
 | notify_url | string | 是 | 异步通知地址（支付成功回调） | http://127.0.0.1/notify |
 | return_url | string | 否 | 同步跳转地址 | https://example.com/return |
 | is_form | int | 否 | 返回类型：1=form 跳转，2=json 支付链接（默认2） | 2 |
@@ -90,12 +90,11 @@ GET `/api/v1/order/query`
 | order_no | string | 平台订单号 | BY20251016204701C4CA1207 |
 | merchant_order_no | string | 商户订单号 | M202510160001 |
 | third_party_order_no | string | 三方平台订单号 | P732025101620470175221 |
-| amount | string | 金额（元，保留两位小数） | 1.00 |
+| amount | string | 金额 | 1.00 |
 | status | int | 订单状态：3=支付成功 | 3 |
 | status_text | string | 状态文本 | 支付成功 |
-| paid_time | string | 支付时间（ISO8601或`YYYY-MM-DD HH:mm:ss`） | 2025-10-16T12:49:52.000000Z |
+| paid_time | string | 支付时间（`YYYY-MM-DD HH:mm:ss`） | 2025-10-16 12:49:52 |
 | timestamp | int | 时间戳（秒） | 1760622065 |
-| callback_data | object | 回传原始数据（如有） | {} |
 | sign | string | 回调签名 | 9f1c... |
 
 商户接收后需返回纯文本：`success`（大小写均可）。
@@ -118,7 +117,6 @@ GET `/api/v1/order/query`
 伪代码：
 ```php
 function sign(array $params, string $secretKey, array $signFields = [], string $algo = 'sha256'): string {
-    unset($params['sign'], $params['client_ip'], $params['entities_id']);
     // 自动选择字段
     if (empty($signFields)) {
         ksort($params);
@@ -139,19 +137,7 @@ function sign(array $params, string $secretKey, array $signFields = [], string $
 
 ---
 
-## 五、错误码示例
-```json
-{"code":400, "message":"参数错误"}
-{"code":401, "message":"未授权/请登录"}
-{"code":403, "message":"无权限"}
-{"code":404, "message":"资源不存在"}
-{"code":429, "message":"请求过于频繁"}
-{"code":500, "message":"服务器内部错误"}
-```
-
----
-
-## 六、常见问题
+## 五、常见问题
 1. 未收到回调？
    - 确认 `notify_url` 可公网访问，返回 `success`；
    - 检查商户服务器防火墙/证书；
@@ -165,10 +151,46 @@ function sign(array $params, string $secretKey, array $signFields = [], string $
 
 ---
 
-## 七、联调建议
+## 六、联调建议
 - 先在测试环境完成签名联调；
 - 使用小额订单验证 创建/查询/回调 全链路；
 - 回调端打印并校验签名，返回 `success`；
 - 确认异常重试策略符合预期。
+
+
+---
+
+## 七、商户信息查询
+GET `/api/v1/merchant/info`
+
+请求参数（Query）：
+
+| 字段 | 类型 | 必填 | 说明 | 示例 |
+| - | - | - | - | - |
+| merchant_key | string | 是 | 商户唯一标识 | MCH_68F0E79CA6E42_20251016 |
+| nonce | string | 是 | 随机不重复字符串 | 978-0-461-13992-1 |
+| sign | string | 是 | 签名（SignatureHelper 规则） | 9f1c...
+
+成功响应示例：
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "merchant_name": "演示商户",
+    "merchant_key": "MCH_68F0E79CA6E42_20251016",
+    "status": 1,
+    "balance": "1000.00"
+  }
+}
+```
+
+curl 示例：
+```bash
+curl -G "http://127.0.0.1:8787/api/v1/merchant/info" \
+  --data-urlencode "merchant_key=MCH_68F0E79CA6E42_20251016" \
+  --data-urlencode "nonce=978-0-461-13992-1" \
+  --data-urlencode "sign=替换为签名"
+```
 
 
