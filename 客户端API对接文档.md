@@ -9,7 +9,7 @@
 - 金额单位：元
 
 ### 鉴权
-商户服务端接口通过签名（sign）与密钥进行校验，详见“签名规则”。
+商户服务端接口通过签名（sign）与密钥进行校验，详见"签名规则"。
 
 ---
 
@@ -53,36 +53,69 @@ POST `/api/v1/order/create`
 ---
 
 ## 二、订单查询
-GET `/api/v1/order/query`
+POST `/api/v1/order/query`
 
-请求参数（Query）：
+请求参数（JSON）：
 
 | 字段 | 类型 | 必填 | 说明 | 示例 |
 | - | - | - | - | - |
-| order_no | string | 否 | 平台订单号（与 merchant_order_no 二选一） | BY20251016204701C4CA1207 |
-| merchant_order_no | string | 否 | 商户订单号（与 order_no 二选一） | M202510160001 |
-| sign | string | 是 | 签名，见签名规则 | 9f1c... |
+| merchant_key | string | 是 | 商户唯一标识 | MCH_68F0E79CA6E42_20251016 |
+| order_no | string | 否 | 平台订单号（与 merchant_order_no 二选一，同时提供时以 order_no 为准） | BY20251016204701C4CA1207 |
+| merchant_order_no | string | 否 | 商户订单号（与 order_no 二选一，同时提供时以 order_no 为准） | M202510160001 |
+| timestamp | int | 是 | 时间戳（秒），5分钟内有效 | 1760622065 |
+| sign | string | 是 | 签名，见签名规则 | 9f1c...
 
 返回示例：
 ```json
 {
   "code": 200,
-  "message": "success",
+  "message": "查询成功",
   "data": {
+    "merchant_key": "MCH_68F0E79CA6E42_20251016",
     "order_no": "BY20251016204701C4CA1207",
     "merchant_order_no": "978-0-461-13992-1",
     "third_party_order_no": "P732025101620470175221",
+    "trace_id": "TRACE_20251016204701",
+    "status": "支付成功",
     "amount": "1.00",
-    "status": 3,
-    "status_text": "支付成功",
-    "paid_time": "2025-10-16 20:49:52"
+    "fee": "0.01",
+    "subject": "正常测试订单",
+    "created_at": "2025-10-16 20:47:01",
+    "paid_time": "2025-10-16 20:49:52",
+    "sign": "9f1c..."
   }
 }
 ```
 
 ---
 
-## 三、异步回调（服务端通知）
+## 三、商户余额查询
+POST `/api/v1/merchant/balance`
+
+请求参数（JSON）：
+
+| 字段 | 类型 | 必填 | 说明 | 示例 |
+| - | - | - | - | - |
+| merchant_key | string | 是 | 商户唯一标识 | MCH_68F0E79CA6E42_20251016 |
+| timestamp | int | 是 | 时间戳（秒），5分钟内有效 | 1760622065 |
+| sign | string | 是 | 签名，见签名规则 | 9f1c...
+
+返回示例：
+```json
+{
+  "code": 200,
+  "message": "查询成功",
+  "data": {
+    "merchant_key": "MCH_68F0E79CA6E42_20251016",
+    "balance": "1000.00",
+    "sign": "9f1c..."
+  }
+}
+```
+
+---
+
+## 四、异步回调（服务端通知）
 当订单支付成功后，系统会向商户的 `notify_url` 以 `POST` 发送 JSON：
 
 | 字段 | 类型 | 说明 | 示例 |
@@ -104,14 +137,14 @@ GET `/api/v1/order/query`
 
 ---
 
-## 四、签名规则（基于 SignatureHelper）
+## 五、签名规则（基于 SignatureHelper）
 签名与验签遵循 `app/common/helpers/SignatureHelper.php`：
 
 规则摘要：
 1. 排除字段：`sign`、`client_ip`、`entities_id` 不参与签名。
 2. 字段选择：如未指定参与字段列表，默认取请求参数中（去空值后）的全部字段键集合。
 3. 排序：对参与的字段名进行字典序排序；
-4. 拼接：将参与字段的“值”按排序结果顺序直接拼接为一个字符串（仅值拼接，不包含键名与连接符）；
+4. 拼接：将参与字段的"值"按排序结果顺序直接拼接为一个字符串（仅值拼接，不包含键名与连接符）；
 5. 计算：`md5( hash_hmac('sha256', stringToSign, secretKey) )` 得到签名字符串。
 
 伪代码：
@@ -137,7 +170,7 @@ function sign(array $params, string $secretKey, array $signFields = [], string $
 
 ---
 
-## 五、常见问题
+## 六、常见问题
 1. 未收到回调？
    - 确认 `notify_url` 可公网访问，返回 `success`；
    - 检查商户服务器防火墙/证书；
@@ -151,46 +184,8 @@ function sign(array $params, string $secretKey, array $signFields = [], string $
 
 ---
 
-## 六、联调建议
+## 七、联调建议
 - 先在测试环境完成签名联调；
 - 使用小额订单验证 创建/查询/回调 全链路；
 - 回调端打印并校验签名，返回 `success`；
 - 确认异常重试策略符合预期。
-
-
----
-
-## 七、商户信息查询
-GET `/api/v1/merchant/info`
-
-请求参数（Query）：
-
-| 字段 | 类型 | 必填 | 说明 | 示例 |
-| - | - | - | - | - |
-| merchant_key | string | 是 | 商户唯一标识 | MCH_68F0E79CA6E42_20251016 |
-| nonce | string | 是 | 随机不重复字符串 | 978-0-461-13992-1 |
-| sign | string | 是 | 签名（SignatureHelper 规则） | 9f1c...
-
-成功响应示例：
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": {
-    "merchant_name": "演示商户",
-    "merchant_key": "MCH_68F0E79CA6E42_20251016",
-    "status": 1,
-    "balance": "1000.00"
-  }
-}
-```
-
-curl 示例：
-```bash
-curl -G "http://127.0.0.1:8787/api/v1/merchant/info" \
-  --data-urlencode "merchant_key=MCH_68F0E79CA6E42_20251016" \
-  --data-urlencode "nonce=978-0-461-13992-1" \
-  --data-urlencode "sign=替换为签名"
-```
-
-

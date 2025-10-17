@@ -43,3 +43,4 @@ SELECT
     COUNT(*) as total_permissions
 FROM fourth_party_payment_permission_rule 
 WHERE rule LIKE 'system:config%';
+

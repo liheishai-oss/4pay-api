@@ -29,8 +29,9 @@ class PreConditionValidator
             throw new MyBusinessException('订单号参数缺失，请提供order_no或merchant_order_no');
         }
 
+        // 如果同时提供了两个订单号，以order_no为准
         if (isset($data['order_no']) && isset($data['merchant_order_no'])) {
-            throw new MyBusinessException('订单号参数冲突，请只提供order_no或merchant_order_no其中一个');
+            unset($data['merchant_order_no']);
         }
 
         // 验证时间戳（5分钟内有效）
