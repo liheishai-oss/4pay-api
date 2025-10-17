@@ -123,3 +123,4 @@ mysql -u username -p database_name < system_config_permissions.sql
 
 - v1.0.0: 初始版本，包含基础权限控制
 - 后续版本将根据需求增加更多权限细分
+
