@@ -6,13 +6,10 @@
 - 基础路径：`/api/v1`
 - 编码：UTF-8，`application/json`
 - 时间格式：`YYYY-MM-DD HH:mm:ss`（或 ISO8601）
-- 金额单位：分（整数）
+- 金额单位：元（保留两位小数）
 
 ### 鉴权
-- 管理后台接口受登录与权限控制；
-- 商户服务端下单、查询接口通常使用签名（sign）与密钥校验；
-
-如有 Token/JWT 要求，请按实际下发的密钥与示例实现。
+商户服务端接口通过签名（sign）与密钥进行校验，详见“签名规则”。
 
 ---
 
@@ -23,16 +20,19 @@ POST `/api/v1/order/create`
 
 | 字段 | 类型 | 必填 | 说明 | 示例 |
 | - | - | - | - | - |
-| order_no | string | 否 | 系统内自定义订单号（唯一），不传则由平台生成 | BY20251016204701C4CA1207 |
-| merchant_order_no | string | 否 | 商户侧订单号 | M202510160001 |
-| amount | int | 是 | 金额（分） | 100 |
-| notify_url | string | 是 | 异步通知地址（支付成功回调） | https://merchant.example.com/notify |
-| return_url | string | 否 | 同步跳转地址 | https://merchant.example.com/return |
-| product_code | string | 否 | 产品编码（与通道二选一，按分配） | 10001 |
-| channel_id | int | 否 | 通道ID（与产品编码二选一，按分配） | 11 |
-| extra | object | 否 | 扩展参数 | {"remark":"test"} |
-| timestamp | int | 是 | 时间戳（秒） | 1760622000 |
-| sign | string | 是 | 签名，见签名规则 | 9f1c... |
+| merchant_key | string | 是 | 商户唯一标识 | MCH_68F0E79CA6E42_20251016 |
+| nonce | string | 否 | 随机字符串/防重放（如使用） | 978-0-461-13992-1 |
+| merchant_order_no | string | 是 | 商户订单号（6-64位，字母数字或下划线） | 978-0-461-13992-1 |
+| order_amount | string | 是 | 订单金额（元，支持两位小数） | 1.00 |
+| product_code | string | 是 | 产品编码（按分配；无需传通道） | "8416" |
+| notify_url | string | 是 | 异步通知地址（支付成功回调） | http://127.0.0.1/notify |
+| return_url | string | 否 | 同步跳转地址 | https://example.com/return |
+| is_form | int | 否 | 返回类型：1=form 跳转，2=json 支付链接（默认2） | 2 |
+| terminal_ip | string | 是 | 终端IP地址 | 127.0.0.1 |
+| payer_id | string | 否 | 终端会员编号 | TEST_USER_001 |
+| order_title | string | 否 | 订单标题 | 正常测试订单 |
+| order_body | string | 否 | 订单描述 | 这是一个测试订单 |
+| sign | string | 是 | 签名（SignatureHelper 规则） | 9f1c...
 
 返回示例：
 ```json
@@ -61,7 +61,6 @@ GET `/api/v1/order/query`
 | - | - | - | - | - |
 | order_no | string | 否 | 平台订单号（与 merchant_order_no 二选一） | BY20251016204701C4CA1207 |
 | merchant_order_no | string | 否 | 商户订单号（与 order_no 二选一） | M202510160001 |
-| timestamp | int | 是 | 时间戳（秒） | 1760622000 |
 | sign | string | 是 | 签名，见签名规则 | 9f1c... |
 
 返回示例：
@@ -73,7 +72,7 @@ GET `/api/v1/order/query`
     "order_no": "BY20251016204701C4CA1207",
     "merchant_order_no": "978-0-461-13992-1",
     "third_party_order_no": "P732025101620470175221",
-    "amount": 100,
+    "amount": "1.00",
     "status": 3,
     "status_text": "支付成功",
     "paid_time": "2025-10-16 20:49:52"
@@ -91,7 +90,7 @@ GET `/api/v1/order/query`
 | order_no | string | 平台订单号 | BY20251016204701C4CA1207 |
 | merchant_order_no | string | 商户订单号 | M202510160001 |
 | third_party_order_no | string | 三方平台订单号 | P732025101620470175221 |
-| amount | int | 金额（分） | 100 |
+| amount | string | 金额（元，保留两位小数） | 1.00 |
 | status | int | 订单状态：3=支付成功 | 3 |
 | status_text | string | 状态文本 | 支付成功 |
 | paid_time | string | 支付时间（ISO8601或`YYYY-MM-DD HH:mm:ss`） | 2025-10-16T12:49:52.000000Z |
@@ -106,21 +105,35 @@ GET `/api/v1/order/query`
 
 ---
 
-## 四、签名规则
-示例规则（实际以分配的规则为准）：
-1. 参与字段：去除空值后的业务字段 + `timestamp`，不含 `sign` 本身。
-2. 字典序升序拼接为 `key1=value1&key2=value2...`。
-3. 末尾拼接密钥：`&key=YOUR_SECRET`。
-4. 执行 `md5`，并转小写/大写（按约定）。
+## 四、签名规则（基于 SignatureHelper）
+签名与验签遵循 `app/common/helpers/SignatureHelper.php`：
+
+规则摘要：
+1. 排除字段：`sign`、`client_ip`、`entities_id` 不参与签名。
+2. 字段选择：如未指定参与字段列表，默认取请求参数中（去空值后）的全部字段键集合。
+3. 排序：对参与的字段名进行字典序排序；
+4. 拼接：将参与字段的“值”按排序结果顺序直接拼接为一个字符串（仅值拼接，不包含键名与连接符）；
+5. 计算：`md5( hash_hmac('sha256', stringToSign, secretKey) )` 得到签名字符串。
 
 伪代码：
 ```php
-function sign(array $data, string $secret): string {
-    unset($data['sign']);
-    $data = array_filter($data, fn($v) => $v !== '' && $v !== null);
-    ksort($data);
-    $query = http_build_query($data);
-    return md5($query . '&key=' . $secret);
+function sign(array $params, string $secretKey, array $signFields = [], string $algo = 'sha256'): string {
+    unset($params['sign'], $params['client_ip'], $params['entities_id']);
+    // 自动选择字段
+    if (empty($signFields)) {
+        ksort($params);
+        foreach ($params as $k => $v) {
+            if ($v === '' || $v === null) continue;
+            $signFields[] = $k;
+        }
+    }
+    // 排序并拼接值
+    sort($signFields, SORT_STRING);
+    $stringToSign = '';
+    foreach ($signFields as $field) {
+        $stringToSign .= (string)($params[$field] ?? '');
+    }
+    return md5(hash_hmac($algo, $stringToSign, $secretKey));
 }
 ```
 
@@ -147,8 +160,8 @@ function sign(array $data, string $secret): string {
 2. 查询状态与回调状态不一致？
    - 以查询结果为准；回调失败会重试，短时可能不同步。
 
-3. 超时订单未关闭？
-   - 系统有强制超时（默认30分钟，可配置）与供应商失败判定；超过阈值自动关闭。
+3. 回调未收到？
+   - 请确认回调地址可公网访问并返回 `success`；系统具备重试与监控补偿能力。
 
 ---
 
