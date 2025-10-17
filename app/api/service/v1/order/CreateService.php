@@ -358,13 +358,9 @@ class CreateService
                 'client_ip'            => $_SERVER['REMOTE_ADDR'] ?? '',
                 'terminal_ip'          => $data['terminal_ip'], // 终端IP地址
                 'user_agent'           => $_SERVER['HTTP_USER_AGENT'] ?? '',
-                'subject'              => $data['subject'] ?? '订单支付',
+                'subject'              => '订单支付',
                 'body'                 => '',
-                'extra_data'           => json_encode([
-                    'available_channels' => $channels, // 保存所有可用通道信息
-                    'selection_strategy' => 'enterprise_validation',
-                    'default_channel_id' => $primaryChannel['id'] // 记录默认通道ID
-                ]),
+                'extra_data'           => $this->buildExtraData($data, $channels, $primaryChannel),
                 'third_party_response' => null,
                 'notify_count'         => 0,
                 'notify_status'        => 0,
@@ -394,24 +390,29 @@ class CreateService
                     $traceId
                 );
             } catch (MyBusinessException $e) {
-                // 支付失败，更新订单状态为失败
-                $this->repository->updateOrder($order->id, [
-                    'status' => OrderStatus::FAILED,
-                    'third_party_response' => json_encode(['error' => $e->getMessage()])
-                ]);
+                // 支付失败，回滚整个事务
+                Db::rollback();
                 
                 // 订单创建失败，清理缓存
                 $this->repository->clearOrderCache($data['merchant_order_no'], $merchant['id']);
                 
-                // 提交事务（确保失败状态被保存）
-                Db::commit();
+                // 释放分布式锁
                 $this->releaseDistributedLock($lockKey);
+                
+                // 记录支付失败日志
+                Log::error('支付执行失败', [
+                    'merchant_id' => $merchant['id'],
+                    'merchant_order_no' => $data['merchant_order_no'],
+                    'order_no' => $orderData['order_no'] ?? null,
+                    'error' => $e->getMessage(),
+                    'trace_id' => $traceId
+                ]);
                 
                 // 直接返回失败响应，不抛出异常避免重复处理
                 return [
                     'code' => 400,
                     'status' => false,
-                    'message' => '订单创建失败，请联系客服',
+                    'message' => '支付失败，订单未创建',
                     'data' => []
                 ];
             }
@@ -517,50 +518,6 @@ class CreateService
         return $fee;
     }
 
-    /**
-     * 处理支付
-     * @param Order $order
-     * @param PaymentChannel $channel
-     * @param array $data
-     * @return PaymentResult
-     */
-    private function processPayment(Order $order, PaymentChannel $channel): PaymentResult
-    {
-        try {
-            // 根据通道类型选择支付服务
-            $paymentService = $this->getPaymentService($channel->interface_code, $channel);
-            
-            // 构建支付参数
-            $paymentParams = $this->buildPaymentParams($order, $channel);
-            
-            // 调用支付接口
-            return $paymentService->processPayment($paymentParams);
-            
-        } catch (\Exception $e) {
-            return PaymentResult::failed('支付处理失败: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * 获取支付服务实例
-     * @param string $interfaceCode
-     * @param PaymentChannel $channel 通道信息
-     * @return object
-     * @throws MyBusinessException
-     */
-    private function getPaymentService(string $interfaceCode, PaymentChannel $channel): object
-    {
-        $serviceClass = "app\\service\\thirdparty_payment\\services\\{$interfaceCode}Service";
-        
-        if (!class_exists($serviceClass)) {
-            throw new MyBusinessException("不支持的支付通道: {$interfaceCode}");
-        }
-        
-        // 从通道基础参数获取配置
-        $config = $channel->basic_params ?? [];
-        
-        return new $serviceClass($config);
-    }
 
     /**
      * 通过产品代码获取产品ID
@@ -586,30 +543,6 @@ class CreateService
         return $product['id'];
     }
 
-    /**
-     * 构建支付参数
-     * @param Order $order
-     * @param PaymentChannel $channel
-     * @return array
-     */
-    private function buildPaymentParams(Order $order, PaymentChannel $channel): array
-    {
-        $baseParams = [
-            'merchant_id'  => $order->merchant_id,
-            'order_id'     => $order->merchant_order_no,
-            'order_amount' => MoneyHelper::convertToYuan($order->amount),
-            'notify_url'   => $order->notify_url,
-            'return_url'   => $order->return_url,
-            'order_title'  => $order->subject,
-            'order_body'   => $order->body,
-            'timestamp'    => time()
-        ];
-
-        // 统一使用标准参数格式，添加产品编码
-        $baseParams['product_code'] = $channel->product_code ?? '';
-        
-        return $baseParams;
-    }
 
     /**
      * 格式化支付响应
@@ -797,6 +730,34 @@ class CreateService
         }
 
         return $validChannels;
+    }
+
+    /**
+     * 构建扩展数据
+     * @param array $data 用户传入数据
+     * @param array $channels 可用通道列表
+     * @param array $primaryChannel 主通道
+     * @return string JSON格式的扩展数据
+     */
+    private function buildExtraData(array $data, array $channels, array $primaryChannel): string
+    {
+        // 用户扩展数据原样存储
+        $userExtraData = $data['extra_data'] ?? '';
+        
+        // 系统扩展数据单独存储到extra_data字段
+        $systemExtraData = [
+            'available_channels' => $channels, // 保存所有可用通道信息
+            'selection_strategy' => 'enterprise_validation',
+            'default_channel_id' => $primaryChannel['id'] // 记录默认通道ID
+        ];
+
+        // 如果用户有扩展数据，合并到系统数据中
+        if (!empty($userExtraData)) {
+            $userData = json_decode($userExtraData, true) ?? [];
+            $systemExtraData = array_merge($systemExtraData, $userData);
+        }
+
+        return json_encode($systemExtraData);
     }
 
 }
