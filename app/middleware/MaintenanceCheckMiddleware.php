@@ -26,7 +26,6 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
             // 只对API请求进行维护状态检查，跳过前端页面请求
             $uri = $request->uri();
             $host = $request->host();
-            echo "检查维护状态:{$host}";
             $serverPort = $_SERVER['SERVER_PORT'] ?? null;
             
             Log::info('维护状态检查中间件开始', [
@@ -66,6 +65,14 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                 // 如果数据库表不存在或连接失败，跳过维护状态检查
                 Log::warning('维护状态检查跳过，数据库表可能不存在', [
                     'error' => $dbError->getMessage(),
+                    'request_uri' => $request->uri()
+                ]);
+                return $handler($request);
+            }
+            
+            // 临时调试：如果数据库连接失败，直接跳过维护检查
+            if (empty($maintenanceServers)) {
+                Log::info('没有检测到维护状态，继续处理请求', [
                     'request_uri' => $request->uri()
                 ]);
                 return $handler($request);
