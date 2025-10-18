@@ -69,14 +69,6 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                 ]);
                 return $handler($request);
             }
-            
-            // 临时调试：如果数据库连接失败，直接跳过维护检查
-            if (empty($maintenanceServers)) {
-                Log::info('没有检测到维护状态，继续处理请求', [
-                    'request_uri' => $request->uri()
-                ]);
-                return $handler($request);
-            }
 
             if ($maintenanceServers->isNotEmpty()) {
                 // 检测到维护状态，直接返回HTTP 503状态码
