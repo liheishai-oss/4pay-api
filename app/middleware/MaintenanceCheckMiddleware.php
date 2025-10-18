@@ -78,7 +78,8 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
 //                    'is_maintenance'=>1,
 //                    'status'=>Server::STATUS_MAINTENANCE,
                 ])->first();
-                var_dump($currentServer);
+                echo "当前服务器:";
+                print_r($currentServer);
             } catch (\Exception $dbError) {
                 // 如果数据库表不存在或连接失败，返回503维护状态
                 Log::warning('数据库连接失败，返回503维护状态', [
