@@ -87,11 +87,11 @@ class OptimizedOrderStatisticsService
         
         return [
             'total_orders' => $statistics->total_orders,
-            'total_amount' => $statistics->total_amount,
+            'total_amount' => round($statistics->total_amount / 100, 2), // 分转元
             'paid_orders' => $statistics->paid_orders,
-            'paid_amount' => $statistics->paid_amount,
+            'paid_amount' => round($statistics->paid_amount / 100, 2), // 分转元
             'pending_orders' => $statistics->pending_orders,
-            'pending_amount' => $statistics->pending_amount,
+            'pending_amount' => round($statistics->pending_amount / 100, 2), // 分转元
             'failed_orders' => $statistics->failed_orders,
             'cancelled_orders' => $statistics->cancelled_orders,
             'success_rate' => $this->calculateSuccessRate($statistics->total_orders, $statistics->paid_orders),
@@ -132,15 +132,15 @@ class OptimizedOrderStatisticsService
         
         return [
             'total_orders' => (int)$result->total_orders,
-            'total_amount' => (int)$result->total_amount,
+            'total_amount' => round((int)$result->total_amount / 100, 2), // 分转元
             'paid_orders' => (int)$result->paid_orders,
-            'paid_amount' => (int)$result->paid_amount,
+            'paid_amount' => round((int)$result->paid_amount / 100, 2), // 分转元
             'pending_orders' => (int)$result->pending_orders,
-            'pending_amount' => (int)$result->pending_amount,
+            'pending_amount' => round((int)$result->pending_amount / 100, 2), // 分转元
             'failed_orders' => (int)$result->failed_orders,
-            'failed_amount' => (int)$result->failed_amount,
+            'failed_amount' => round((int)$result->failed_amount / 100, 2), // 分转元
             'cancelled_orders' => (int)$result->cancelled_orders,
-            'cancelled_amount' => (int)$result->cancelled_amount,
+            'cancelled_amount' => round((int)$result->cancelled_amount / 100, 2), // 分转元
             'success_rate' => $this->calculateSuccessRate($result->total_orders, $result->paid_orders),
             'data_source' => 'optimized_query'
         ];

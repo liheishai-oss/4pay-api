@@ -33,7 +33,7 @@ class DashboardService
         return [
             'today_total_orders' => $todayTotalOrders,
             'today_paid_orders' => $todayPaidOrders,
-            'today_paid_amount' => round($todayPaidAmount, 2)
+            'today_paid_amount' => round($todayPaidAmount / 100, 2) // 分转元
         ];
     }
 
@@ -169,7 +169,7 @@ class DashboardService
                                        return [
                                            'payment_method' => $item->payment_method,
                                            'count' => $item->count,
-                                           'total_amount' => round($item->total_amount, 2)
+                                           'total_amount' => round($item->total_amount / 100, 2) // 分转元
                                        ];
                                    });
 
@@ -195,7 +195,7 @@ class DashboardService
                                      'merchant_id' => $merchantId,
                                      'merchant_name' => $merchant ? $merchant->merchant_name : '未知商户',
                                      'order_count' => $orders->count(),
-                                     'total_amount' => round($orders->sum('amount'), 2)
+                                     'total_amount' => round($orders->sum('amount') / 100, 2) // 分转元
                                  ];
                              })
                              ->sortByDesc('total_amount')
