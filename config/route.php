@@ -28,6 +28,16 @@ Route::group('/api/v1/admin', function() {
         // 修复未通知订单
         Route::add(['POST', 'OPTIONS'], '/fix-unnotified-orders', [app\admin\controller\v1\CallbackMonitorController::class, 'fixUnnotifiedOrders']);
     });
+
+    // 回调超时管理路由
+    Route::group('/callback-timeout', function () {
+        // 检查回调超时的订单
+        Route::add(['POST', 'OPTIONS'], '/check', [app\admin\controller\v1\CallbackTimeoutController::class, 'checkTimeout']);
+        // 获取回调超时统计信息
+        Route::add(['GET', 'OPTIONS'], '/stats', [app\admin\controller\v1\CallbackTimeoutController::class, 'getStats']);
+        // 手动处理单个订单的回调超时
+        Route::add(['POST', 'OPTIONS'], '/handle-order', [app\admin\controller\v1\CallbackTimeoutController::class, 'handleOrder']);
+    });
     
     // 财务管理路由
     Route::group('/finance', function () {
