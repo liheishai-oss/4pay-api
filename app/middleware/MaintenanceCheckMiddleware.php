@@ -38,7 +38,6 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
             
             // 屏蔽特定本地访问地址的维护状态验证
             // 只允许 127.0.0.1:8787 和 localhost:8787 跳过维护检查
-            echo $host;
             if ($host === '127.0.0.1:8787' || $host === 'localhost:8787') {
                 Log::info('跳过特定本地访问地址的维护状态检查', [
                     'host' => $host,
@@ -56,38 +55,42 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                 return $handler($request);
             }
             
+            // 获取当前服务器IP
+            $currentServerIp = $this->getCurrentServerIp();
+            
             // 检查数据库表是否存在
             try {
-                // 检查是否有服务器处于维护状态
-                $maintenanceServers = Server::where('is_maintenance', true)
-                    ->where('status', Server::STATUS_MAINTENANCE)
-                    ->get();
+                // 查询当前服务器IP的维护状态
+                $currentServer = Server::where('server_ip', $currentServerIp)
+                    ->where(function($query) {
+                        $query->where('is_maintenance', true)
+                              ->orWhere('status', Server::STATUS_MAINTENANCE);
+                    })
+                    ->first();
             } catch (\Exception $dbError) {
                 // 如果数据库表不存在或连接失败，跳过维护状态检查
                 Log::warning('维护状态检查跳过，数据库表可能不存在', [
                     'error' => $dbError->getMessage(),
-                    'request_uri' => $request->uri()
+                    'request_uri' => $request->uri(),
+                    'current_server_ip' => $currentServerIp
                 ]);
                 return $handler($request);
             }
 
-            if ($maintenanceServers->isNotEmpty()) {
-                // 检测到维护状态，直接返回HTTP 503状态码
-                $maintenanceInfo = $maintenanceServers->map(function ($server) {
-                    return [
-                        'id' => $server->id,
-                        'server_name' => $server->server_name,
-                        'server_ip' => $server->server_ip,
-                        'server_port' => $server->server_port,
-                        'status' => $server->status,
-                        'is_maintenance' => $server->is_maintenance
-                    ];
-                });
-
-                Log::info('检测到服务器维护状态，返回HTTP 503', [
-                    'maintenance_servers' => $maintenanceInfo->toArray(),
+            if ($currentServer) {
+                // 检测到当前服务器处于维护状态，直接返回HTTP 503状态码
+                Log::info('检测到当前服务器维护状态，返回HTTP 503', [
+                    'current_server' => [
+                        'id' => $currentServer->id,
+                        'server_name' => $currentServer->server_name,
+                        'server_ip' => $currentServer->server_ip,
+                        'server_port' => $currentServer->server_port,
+                        'status' => $currentServer->status,
+                        'is_maintenance' => $currentServer->is_maintenance
+                    ],
                     'request_uri' => $request->uri(),
-                    'request_method' => $request->method()
+                    'request_method' => $request->method(),
+                    'current_server_ip' => $currentServerIp
                 ]);
 
                 // 直接返回HTTP 503状态码，让nginx知道服务器在维护
@@ -108,6 +111,56 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
 
             // 检查失败时，为了安全起见，继续处理请求
             return $handler($request);
+        }
+    }
+
+    /**
+     * 获取当前服务器IP地址
+     * @return string
+     */
+    private function getCurrentServerIp(): string
+    {
+        // 优先使用SERVER_ADDR
+        if (!empty($_SERVER['SERVER_ADDR'])) {
+            return $_SERVER['SERVER_ADDR'];
+        }
+        
+        // 尝试获取本地IP
+        $localIp = $this->getLocalIpAddress();
+        if ($localIp) {
+            return $localIp;
+        }
+        
+        // 默认返回127.0.0.1
+        return '127.0.0.1';
+    }
+
+    /**
+     * 获取本地IP地址
+     * @return string|null
+     */
+    private function getLocalIpAddress(): ?string
+    {
+        try {
+            // 尝试通过socket获取本地IP
+            $socket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+            if ($socket === false) {
+                return null;
+            }
+            
+            socket_connect($socket, '8.8.8.8', 80);
+            socket_getsockname($socket, $localIp);
+            socket_close($socket);
+            
+            return $localIp;
+        } catch (\Exception $e) {
+            // 如果socket方法失败，尝试其他方法
+            try {
+                $ip = gethostbyname(gethostname());
+                return $ip !== gethostname() ? $ip : null;
+            } catch (\Exception $e2) {
+                return null;
+            }
         }
     }
 }
