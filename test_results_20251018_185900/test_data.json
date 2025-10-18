@@ -1,0 +1,13 @@
+{
+    "merchant_key": "MCH_68F0E79CA6E42_20251016",
+    "merchant_order_no": "TEST_20251018185900_31138",
+    "order_amount": "1.00",
+    "product_code": "8416",
+    "notify_url": "https://api.baiyi-pay.com/notify",
+    "return_url": "https://example.com/return",
+    "terminal_ip": "127.0.0.1",
+    "extra_data": "{\"test\": true, \"timestamp\": 1760785140}",
+    "debug": "1",
+    "timestamp": 1760785140,
+    "nonce": "f1178d605c1c110be328d8c9fd37f536"
+}

@@ -1,0 +1,16 @@
+{
+    "merchant_key": "MCH_68F0E79CA6E42_20251016",
+    "nonce": "e8d5282b42c2e34ed38882d01a08b88e",
+    "merchant_order_no": "TEST_20251018190134_35124",
+    "order_amount": "1",
+    "product_code": 8416,
+    "notify_url": "http://127.0.0.1/notify",
+    "return_url": "https://example.com/return",
+    "is_form": 2,
+    "terminal_ip": "127.0.0.1",
+    "payer_id": "TEST_USER_001",
+    "order_title": "正常测试订单",
+    "order_body": "这是一个测试订单",
+    "debug": 1,
+    "sign": "test_sign"
+}
