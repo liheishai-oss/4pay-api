@@ -57,10 +57,18 @@ class IndexService
         // 时间范围查询
         if (!empty($params['start_time'])) {
             $query->where('created_at', '>=', $params['start_time']);
+        } else {
+            // 如果没有指定开始时间，默认搜索当天数据
+            $today = date('Y-m-d');
+            $query->where('created_at', '>=', $today . ' 00:00:00');
         }
 
         if (!empty($params['end_time'])) {
             $query->where('created_at', '<=', $params['end_time']);
+        } else {
+            // 如果没有指定结束时间，默认到当天结束
+            $today = date('Y-m-d');
+            $query->where('created_at', '<=', $today . ' 23:59:59');
         }
 
         // 排序
