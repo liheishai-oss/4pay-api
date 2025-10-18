@@ -54,8 +54,17 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                 return $handler($request);
             }
             
-            // 获取当前服务器IP
-            $currentServerIp = $request->getRealIp();
+            // 获取当前服务器IP（从.env文件获取）
+            $currentServerIp = $this->getServerIpFromEnv();
+            
+            // 如果是127.0.0.1，跳过维护检查
+            if ($currentServerIp === '127.0.0.1') {
+                Log::info('本地IP跳过维护状态检查', [
+                    'current_server_ip' => $currentServerIp,
+                    'request_uri' => $request->uri()
+                ]);
+                return $handler($request);
+            }
             
             // 如果无法获取到IP，直接返回503
             if (empty($currentServerIp)) {
@@ -78,8 +87,6 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
 //                    'is_maintenance'=>1,
 //                    'status'=>Server::STATUS_MAINTENANCE,
                 ])->first();
-                echo "当前服务器:{$currentServerIp}";
-                print_r($currentServer);
             } catch (\Exception $dbError) {
                 // 如果数据库表不存在或连接失败，返回503维护状态
                 Log::warning('数据库连接失败，返回503维护状态', [
@@ -141,5 +148,27 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
         }
     }
 
+    /**
+     * 从.env文件获取服务器IP
+     * @return string
+     */
+    private function getServerIpFromEnv(): string
+    {
+        // 从.env文件获取服务器IP
+        $serverIp = env('SERVER_IP', '');
+        
+        // 如果.env中没有配置，尝试从系统获取
+        if (empty($serverIp)) {
+            // 优先使用SERVER_ADDR
+            if (!empty($_SERVER['SERVER_ADDR'])) {
+                $serverIp = $_SERVER['SERVER_ADDR'];
+            } else {
+                // 默认返回127.0.0.1
+                $serverIp = '127.0.0.1';
+            }
+        }
+        
+        return $serverIp;
+    }
 
 }
