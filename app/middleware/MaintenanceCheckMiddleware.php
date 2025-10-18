@@ -73,7 +73,15 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                     'request_uri' => $request->uri(),
                     'request_method' => $request->method()
                 ]);
-                return new Response(503, [], 'Service Unavailable');
+                return new Response(503, [
+                    'Content-Type' => 'application/json',
+                    'Retry-After' => '300'
+                ], json_encode([
+                    'code' => 503,
+                    'status' => false,
+                    'message' => 'Service Unavailable - Maintenance Mode',
+                    'data' => null
+                ]));
             }
             
             // 检查数据库表是否存在
@@ -92,7 +100,15 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                     'current_server_ip' => $currentServerIp
                 ]);
 
-                return new Response(503, [], 'Service Unavailable');
+                return new Response(503, [
+                    'Content-Type' => 'application/json',
+                    'Retry-After' => '300'
+                ], json_encode([
+                    'code' => 503,
+                    'status' => false,
+                    'message' => 'Service Unavailable - Maintenance Mode',
+                    'data' => null
+                ]));
             }
 
             if ($currentServer) {
@@ -115,7 +131,15 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                 ]);
 
                 // 直接返回HTTP 503状态码，让nginx知道服务器在维护
-                return new Response(503, [], 'Service Unavailable');
+                return new Response(503, [
+                    'Content-Type' => 'application/json',
+                    'Retry-After' => '300'
+                ], json_encode([
+                    'code' => 503,
+                    'status' => false,
+                    'message' => 'Service Unavailable - Maintenance Mode',
+                    'data' => null
+                ]));
             } else {
                 // 数据库中不存在该IP的服务器记录，返回503维护状态
                 Log::info('数据库中不存在该IP的服务器记录，返回503维护状态', [
@@ -124,7 +148,15 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                     'request_method' => $request->method()
                 ]);
 
-                return new Response(503, [], 'Service Unavailable');
+                return new Response(503, [
+                    'Content-Type' => 'application/json',
+                    'Retry-After' => '300'
+                ], json_encode([
+                    'code' => 503,
+                    'status' => false,
+                    'message' => 'Service Unavailable - Maintenance Mode',
+                    'data' => null
+                ]));
             }
 
         } catch (\Exception $e) {
