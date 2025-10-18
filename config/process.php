@@ -62,35 +62,35 @@ return [
         ]
     ],
 
-    // 订单超时检查进程
-    'order_timeout_check' => [
-        'handler' => app\process\OrderTimeoutCheckProcess::class,
-        'reloadable' => false,
-        'count' => 1,
-        'constructor' => []
-    ],
-
-    // 商户通知队列进程 - 完整版（处理新通知、重试、延迟）
-    'merchant_notify_queue' => [
-        'handler' => app\process\MerchantNotifyQueueProcess::class,
-        'reloadable' => false,
-        'count' => 1,
-        'constructor' => []
-    ],
-
-    // 回调监控进程 - 定期检查未通知的订单
-    'callback_monitor' => [
-        'handler' => app\process\CallbackMonitorProcess::class,
-        'reloadable' => false,
-        'count' => 1,
-        'constructor' => []
-    ],
-
-    // 回调超时检查进程 - 定期检查10分钟内没有回调成功的订单
-    'callback_timeout_check' => [
-        'handler' => app\process\CallbackTimeoutProcess::class,
-        'reloadable' => false,
-        'count' => 1,
-        'constructor' => []
-    ]
+//    // 订单超时检查进程
+//    'order_timeout_check' => [
+//        'handler' => app\process\OrderTimeoutCheckProcess::class,
+//        'reloadable' => false,
+//        'count' => 1,
+//        'constructor' => []
+//    ],
+//
+//    // 商户通知队列进程 - 完整版（处理新通知、重试、延迟）
+//    'merchant_notify_queue' => [
+//        'handler' => app\process\MerchantNotifyQueueProcess::class,
+//        'reloadable' => false,
+//        'count' => 1,
+//        'constructor' => []
+//    ],
+//
+//    // 回调监控进程 - 定期检查未通知的订单
+//    'callback_monitor' => [
+//        'handler' => app\process\CallbackMonitorProcess::class,
+//        'reloadable' => false,
+//        'count' => 1,
+//        'constructor' => []
+//    ],
+//
+//    // 回调超时检查进程 - 定期检查10分钟内没有回调成功的订单
+//    'callback_timeout_check' => [
+//        'handler' => app\process\CallbackTimeoutProcess::class,
+//        'reloadable' => false,
+//        'count' => 1,
+//        'constructor' => []
+//    ]
 ];
