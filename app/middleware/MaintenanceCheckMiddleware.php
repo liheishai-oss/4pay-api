@@ -26,7 +26,6 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
             // 只对API请求进行维护状态检查，跳过前端页面请求
             $uri = $request->uri();
             $host = $request->host();
-            echo "检查维护状态:{$host}";
             $serverPort = $_SERVER['SERVER_PORT'] ?? null;
             
             Log::info('维护状态检查中间件开始', [
@@ -36,7 +35,6 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                 'is_api' => str_starts_with($uri, '/api/'),
                 'method' => $request->method()
             ]);
-            
             // 屏蔽特定本地访问地址的维护状态验证
             // 只允许 127.0.0.1:8787 和 localhost:8787 跳过维护检查
             if ($host === '127.0.0.1:8787' || $host === 'localhost:8787') {
@@ -56,48 +54,79 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                 return $handler($request);
             }
             
-            // 检查数据库表是否存在
-            try {
-                // 检查是否有服务器处于维护状态
-                $maintenanceServers = Server::where('is_maintenance', true)
-                    ->orWhere('status', Server::STATUS_MAINTENANCE)
-                    ->get();
-            } catch (\Exception $dbError) {
-                // 如果数据库表不存在或连接失败，跳过维护状态检查
-                Log::warning('维护状态检查跳过，数据库表可能不存在', [
-                    'error' => $dbError->getMessage(),
-                    'request_uri' => $request->uri()
-                ]);
-                return $handler($request);
-            }
-
-            if ($maintenanceServers->isNotEmpty()) {
-                // 检测到维护状态，直接返回HTTP 503状态码
-                $maintenanceInfo = $maintenanceServers->map(function ($server) {
-                    return [
-                        'id' => $server->id,
-                        'server_name' => $server->server_name,
-                        'server_ip' => $server->server_ip,
-                        'server_port' => $server->server_port,
-                        'status' => $server->status,
-                        'is_maintenance' => $server->is_maintenance
-                    ];
-                });
-
-                Log::info('检测到服务器维护状态，返回HTTP 503', [
-                    'maintenance_servers' => $maintenanceInfo->toArray(),
+            // 获取当前服务器IP
+            $currentServerIp = $request->getRealIp();
+            
+            // 如果无法获取到IP，直接返回503
+            if (empty($currentServerIp)) {
+                Log::info('无法获取有效服务器IP，返回503维护状态', [
+                    'current_server_ip' => $currentServerIp,
                     'request_uri' => $request->uri(),
                     'request_method' => $request->method()
+                ]);
+                
+                return response('Service Unavailable - Maintenance Mode', 503)
+                    ->header('Content-Type', 'text/plain')
+                    ->header('Retry-After', '300');
+            }
+            
+            // 检查数据库表是否存在
+            try {
+                // 查询当前服务器IP的维护状态
+                $currentServer = Server::where([
+                    'server_ip'=>$currentServerIp,
+//                    'is_maintenance'=>1,
+//                    'status'=>Server::STATUS_MAINTENANCE,
+                ])->first();
+
+            } catch (\Exception $dbError) {
+                // 如果数据库表不存在或连接失败，返回503维护状态
+                Log::warning('数据库连接失败，返回503维护状态', [
+                    'error' => $dbError->getMessage(),
+                    'request_uri' => $request->uri(),
+                    'current_server_ip' => $currentServerIp
+                ]);
+                
+                return response('Service Unavailable - Maintenance Mode', 503)
+                    ->header('Content-Type', 'text/plain')
+                    ->header('Retry-After', '300');
+            }
+
+            if ($currentServer) {
+                if($currentServer->is_maintenance != 1 && $currentServer->status != Server::STATUS_MAINTENANCE){
+                    return $handler($request);
+                }
+                // 检测到当前服务器处于维护状态，直接返回HTTP 503状态码
+                Log::info('检测到当前服务器维护状态，返回HTTP 503', [
+                    'current_server' => [
+                        'id' => $currentServer->id,
+                        'server_name' => $currentServer->server_name,
+                        'server_ip' => $currentServer->server_ip,
+                        'server_port' => $currentServer->server_port,
+                        'status' => $currentServer->status,
+                        'is_maintenance' => $currentServer->is_maintenance
+                    ],
+                    'request_uri' => $request->uri(),
+                    'request_method' => $request->method(),
+                    'current_server_ip' => $currentServerIp
                 ]);
 
                 // 直接返回HTTP 503状态码，让nginx知道服务器在维护
                 return response('Service Unavailable - Maintenance Mode', 503)
                     ->header('Content-Type', 'text/plain')
                     ->header('Retry-After', '300'); // 5分钟后重试
-            }
+            } else {
+                // 数据库中不存在该IP的服务器记录，返回503维护状态
+                Log::info('数据库中不存在该IP的服务器记录，返回503维护状态', [
+                    'current_server_ip' => $currentServerIp,
+                    'request_uri' => $request->uri(),
+                    'request_method' => $request->method()
+                ]);
 
-            // 没有维护状态，继续处理请求
-            return $handler($request);
+                return response('Service Unavailable - Maintenance Mode', 503)
+                    ->header('Content-Type', 'text/plain')
+                    ->header('Retry-After', '300');
+            }
 
         } catch (\Exception $e) {
             Log::error('维护状态检查失败', [
@@ -110,4 +139,6 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
             return $handler($request);
         }
     }
+
+
 }

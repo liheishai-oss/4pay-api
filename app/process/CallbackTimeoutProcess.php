@@ -2,87 +2,88 @@
 
 namespace app\process;
 
-use app\admin\service\CallbackMonitorService;
+use app\admin\service\CallbackTimeoutService;
 use support\Log;
 use Workerman\Timer;
 
 /**
- * 回调监控进程
- * 定期检查支付成功但5秒内没有通知的订单
+ * 回调超时检查进程
+ * 定期检查支付成功但10分钟内没有回调成功的订单，将其状态改为回调失败
  */
-class CallbackMonitorProcess
+class CallbackTimeoutProcess
 {
     /**
      * 进程启动
      */
     public function onWorkerStart()
     {
-//        print_r("检查回调启动");
-        Log::info('检查回调启动进程启动', [
+//        print_r("回调超时检查进程启动");
+        Log::info('回调超时检查进程启动', [
             'process_id' => getmypid(),
             'start_time' => date('Y-m-d H:i:s')
         ]);
 
-        // 每30秒检查一次未通知的订单
-        new \Workerman\Crontab\Crontab('*/5 * * * * *', function(){
-//            echo "开始检查回调订单";
-            $this->checkUnnotifiedOrders();
+        // 每5分钟检查一次回调超时的订单
+        new \Workerman\Crontab\Crontab('*/5 * * * *', function(){
+            echo "开始检查回调超时订单";
+            $this->checkCallbackTimeout();
         });
         
-        Log::info('回调监控进程已启动', [
-            'process_name' => 'CallbackMonitorProcess',
-            'check_interval' => '30秒',
-            'description' => '监控支付成功但5秒内没有通知的订单'
+        Log::info('回调超时检查进程已启动', [
+            'process_name' => 'CallbackTimeoutProcess',
+            'check_interval' => '5分钟',
+            'timeout_minutes' => '10分钟',
+            'description' => '监控支付成功但10分钟内没有回调成功的订单'
         ]);
     }
 
     /**
-     * 检查未通知的订单
+     * 检查回调超时的订单
      */
-    private function checkUnnotifiedOrders(): void
+    private function checkCallbackTimeout(): void
     {
         try {
-            $callbackMonitorService = new CallbackMonitorService();
+            $callbackTimeoutService = new CallbackTimeoutService();
             
-            // 获取支付成功但5秒内没有通知的订单
-            $result = $callbackMonitorService->fixUnnotifiedOrders(24, 3, 50); // 24小时内，支付成功状态，最多50个
-//            print_r($result);
+            // 检查10分钟内没有回调成功的订单
+            $result = $callbackTimeoutService->checkCallbackTimeout(10, 50); // 10分钟超时，最多处理50个
+            
             if ($result['total'] > 0) {
-                Log::info('回调监控：发现未通知订单', [
+                Log::info('回调超时检查：发现超时订单', [
                     'total' => $result['total'],
                     'success' => $result['success'],
                     'skip' => $result['skip'],
                     'error' => $result['error'],
-                    'filter_conditions' => $result['filter_conditions']
+                    'timeout_minutes' => $result['timeout_minutes']
                 ]);
                 
                 // 记录处理结果详情
                 foreach ($result['results'] as $orderResult) {
                     if ($orderResult['status'] === 'success') {
-                        Log::info('回调监控：已触发订单通知', [
+                        Log::info('回调超时检查：已标记订单为回调失败', [
                             'order_no' => $orderResult['order_no'],
                             'paid_time' => $orderResult['paid_time'],
                             'time_since_paid' => $orderResult['time_since_paid']
                         ]);
                     } elseif ($orderResult['status'] === 'skip') {
-                        Log::debug('回调监控：跳过订单', [
+                        Log::debug('回调超时检查：跳过订单', [
                             'order_no' => $orderResult['order_no'],
                             'reason' => $orderResult['message']
                         ]);
                     } elseif ($orderResult['status'] === 'error') {
-                        Log::warning('回调监控：处理订单失败', [
+                        Log::warning('回调超时检查：处理订单失败', [
                             'order_no' => $orderResult['order_no'],
                             'error' => $orderResult['message']
                         ]);
                     }
                 }
             } else {
-                Log::debug('回调监控：未发现需要处理的订单');
+                Log::debug('回调超时检查：未发现需要处理的超时订单');
             }
             
         } catch (\Exception $e) {
             echo $e->getMessage();
-            Log::error('回调监控进程执行失败', [
+            Log::error('回调超时检查进程执行失败', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -94,6 +95,6 @@ class CallbackMonitorProcess
      */
     public function onWorkerStop()
     {
-        Log::info('回调监控进程已停止');
+        Log::info('回调超时检查进程已停止');
     }
 }
