@@ -20,7 +20,7 @@ class OrderTimeoutCheckProcess
      */
     public function onWorkerStart(): void
     {
-        print_r("超时检测启动");
+//        print_r("超时检测启动");
         Log::info('订单超时检查进程启动', [
             'process_id' => getmypid(),
             'start_time' => date('Y-m-d H:i:s')

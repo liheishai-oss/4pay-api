@@ -17,7 +17,7 @@ class CallbackTimeoutProcess
      */
     public function onWorkerStart()
     {
-        print_r("回调超时检查进程启动");
+//        print_r("回调超时检查进程启动");
         Log::info('回调超时检查进程启动', [
             'process_id' => getmypid(),
             'start_time' => date('Y-m-d H:i:s')

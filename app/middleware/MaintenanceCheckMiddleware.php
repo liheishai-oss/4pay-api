@@ -38,6 +38,7 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
             
             // 屏蔽特定本地访问地址的维护状态验证
             // 只允许 127.0.0.1:8787 和 localhost:8787 跳过维护检查
+            echo $host;
             if ($host === '127.0.0.1:8787' || $host === 'localhost:8787') {
                 Log::info('跳过特定本地访问地址的维护状态检查', [
                     'host' => $host,
@@ -59,7 +60,7 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
             try {
                 // 检查是否有服务器处于维护状态
                 $maintenanceServers = Server::where('is_maintenance', true)
-                    ->orWhere('status', Server::STATUS_MAINTENANCE)
+                    ->where('status', Server::STATUS_MAINTENANCE)
                     ->get();
             } catch (\Exception $dbError) {
                 // 如果数据库表不存在或连接失败，跳过维护状态检查
