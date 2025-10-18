@@ -142,7 +142,7 @@ POST `/api/v1/merchant/balance`
 
 ---
 
-## 五、签名规则（基于 SignatureHelper）
+## 五、签名规则
 签名与验签遵循 `app/common/helpers/SignatureHelper.php`：
 
 规则摘要：
