@@ -70,7 +70,8 @@ class QueryService
             'fee'                  => MoneyHelper::convertToYuan($order->fee),
             'subject'              => $order->subject,
             'created_at'           => $order->created_at->format('Y-m-d H:i:s'),
-            'paid_time'            => $order->paid_time ? $order->paid_time->format('Y-m-d H:i:s') : null
+            'paid_time'            => $order->paid_time ? $order->paid_time->format('Y-m-d H:i:s') : null,
+            'extra_data'           => $order->extra_data
         ];
 
         // 使用SignatureHelper生成签名（trace_id不参与签名）

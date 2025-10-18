@@ -41,12 +41,21 @@ class CreatePreConditionValidator
 
         // 验证可选参数 - 逐个验证存在的字段
         $optionalFields = [
-            'return_url' => v::stringType()
+            'return_url' => v::stringType(),
+            'extra_data' => v::stringType()
         ];
 
         foreach ($optionalFields as $field => $validator) {
             if (isset($data[$field]) && $data[$field] !== '' && !$validator->validate($data[$field])) {
                 throw new MyBusinessException("可选参数格式错误: {$field}");
+            }
+        }
+
+        // 验证扩展数据JSON格式
+        if (isset($data['extra_data']) && !empty($data['extra_data'])) {
+            $decoded = json_decode($data['extra_data'], true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new MyBusinessException('扩展数据必须是有效的JSON格式');
             }
         }
 
@@ -109,8 +118,11 @@ class CreatePreConditionValidator
         if (isset($data['return_url'])) {
             $result['return_url'] = $data['return_url'];
         }
-        if (isset($data['subject'])) {
-            $result['subject'] = $data['subject'];
+        if (isset($data['extra_data'])) {
+            $result['extra_data'] = $data['extra_data'];
+        }
+        if (isset($data['debug'])) {
+            $result['debug'] = $data['debug'];
         }
 
         return $result;

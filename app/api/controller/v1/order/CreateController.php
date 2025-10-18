@@ -6,7 +6,6 @@ use support\Request;
 use support\Response;
 use app\api\validator\v1\order\CreatePreConditionValidator;
 use app\api\service\v1\order\CreateService;
-use app\api\validator\v1\order\CreateBusinessDataValidator;
 
 class CreateController
 {
@@ -40,11 +39,8 @@ class CreateController
      * - notify_url (string, 必填): 异步通知地址
      * - sign (string, 必填): 签名
      * - return_url (string, 可选): 同步跳转地址
-     * - is_form (int, 可选): 请求结果类型（1=form表单跳转，2=json返回支付链接，默认2）
      * - terminal_ip (string, 必填): 终端IP地址
-     * - payer_id (string, 可选): 终端会员编号
-     * - order_title (string, 可选): 订单标题
-     * - order_body (string, 可选): 订单描述
+     * - extra_data (string, 可选): 扩展数据，JSON格式
      * 
      * @param Request $request
      * @return Response
@@ -103,14 +99,14 @@ class CreateController
             }
             
         } catch (\Exception $e) {
-            echo '<pre>';
-            print_r($e->getMessage().$e->getFile().$e->getLine());
             $totalTime = round((microtime(true) - $profileStart) * 1000, 2);
             $totalMemory = memory_get_usage() - $profileMemory;
             
             // 记录错误性能数据
             \support\Log::error('商户订单创建失败', [
                 'error' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
                 'total_time_ms' => $totalTime,
                 'memory_usage_mb' => round($totalMemory / 1024 / 1024, 2),
                 'memory_peak_mb' => round(memory_get_peak_usage() / 1024 / 1024, 2)

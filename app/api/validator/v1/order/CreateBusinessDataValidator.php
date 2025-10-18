@@ -41,13 +41,22 @@ class CreateBusinessDataValidator
             throw new MyBusinessException('订单金额超过通道最大限额');
         }
 
-        // 验证签名 - 临时注释用于性能测试
-        // $signatureHelper = new SignatureHelper();
-        // $isValid = $signatureHelper->verify($data, $merchant->merchant_secret);
+        // 验证签名（debug模式下跳过）
+        if (!isset($data['debug']) || $data['debug'] != '1') {
+            $signatureHelper = new SignatureHelper();
+            $isValid = $signatureHelper->verify($data, $merchant->merchant_secret);
 
-        // if (!$isValid) {
-        //     throw new MyBusinessException('签名验证失败');
-        // }
+            if (!$isValid) {
+                throw new MyBusinessException('签名验证失败');
+            }
+        } else {
+            // Debug模式下记录跳过签名验证的日志
+            \support\Log::info('Debug模式：跳过签名验证', [
+                'merchant_id' => $merchant->id,
+                'merchant_key' => $merchant->merchant_key,
+                'data_keys' => array_keys($data)
+            ]);
+        }
     }
 
     /**
@@ -87,22 +96,27 @@ class CreateBusinessDataValidator
             throw new MyBusinessException('通知URL格式不正确');
         }
 
-        // 验证签名 - 临时注释用于性能测试
-        // $signatureHelper = new SignatureHelper();
-        // $isValid = $signatureHelper->verify($data, $merchant['merchant_secret']);
-
-        // 添加调试日志
-        \support\Log::info('签名验证调试 - 已临时禁用', [
-            'data_keys' => array_keys($data),
-            'has_sign' => isset($data['sign']),
-            'sign_value' => $data['sign'] ?? 'NOT_SET',
-            'is_valid' => true, // 临时设置为true
-            'merchant_secret_length' => strlen($merchant['merchant_secret']),
-            'note' => '签名验证已临时禁用用于性能测试'
+        // 验证签名（debug模式下跳过）
+        \support\Log::info('签名验证调试', [
+            'has_debug' => isset($data['debug']),
+            'debug_value' => $data['debug'] ?? 'NOT_SET',
+            'data_keys' => array_keys($data)
         ]);
+        
+        if (!isset($data['debug']) || $data['debug'] != '1') {
+            $signatureHelper = new SignatureHelper();
+            $isValid = $signatureHelper->verify($data, $merchant['merchant_secret']);
 
-        // if (!$isValid) {
-        //     throw new MyBusinessException('签名验证失败');
-        // }
+            if (!$isValid) {
+                throw new MyBusinessException('签名验证失败');
+            }
+        } else {
+            // Debug模式下记录跳过签名验证的日志
+            \support\Log::info('Debug模式：跳过签名验证', [
+                'merchant_id' => $merchant['id'],
+                'merchant_key' => $merchant['merchant_key'],
+                'data_keys' => array_keys($data)
+            ]);
+        }
     }
 }

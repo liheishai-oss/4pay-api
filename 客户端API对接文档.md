@@ -27,11 +27,9 @@ POST `/api/v1/order/create`
 | product_code | string | 是 | 产品编码 | "8416" |
 | notify_url | string | 是 | 异步通知地址（支付成功回调） | http://127.0.0.1/notify |
 | return_url | string | 否 | 同步跳转地址 | https://example.com/return |
-| is_form | int | 否 | 返回类型：1=form 跳转，2=json 支付链接（默认2） | 2 |
 | terminal_ip | string | 是 | 终端IP地址 | 127.0.0.1 |
-| payer_id | string | 否 | 终端会员编号 | TEST_USER_001 |
-| order_title | string | 否 | 订单标题 | 正常测试订单 |
-| order_body | string | 否 | 订单描述 | 这是一个测试订单 |
+| extra_data | string | 否 | 扩展数据，JSON格式 | {"custom_field": "value"} |
+| debug | string | 否 | 调试模式，设为1时跳过签名验证 | 1 |
 | sign | string | 是 | 签名（SignatureHelper 规则） | 9f1c...
 
 返回示例：
@@ -82,6 +80,7 @@ POST `/api/v1/order/query`
     "subject": "正常测试订单",
     "created_at": "2025-10-16 20:47:01",
     "paid_time": "2025-10-16 20:49:52",
+    "extra_data": "{\"user_id\": \"12345\", \"source\": \"mobile_app\"}",
     "sign": "9f1c..."
   }
 }
@@ -127,6 +126,7 @@ POST `/api/v1/merchant/balance`
 | status | int | 订单状态：3=支付成功 | 3 |
 | status_text | string | 状态文本 | 支付成功 |
 | paid_time | string | 支付时间（`YYYY-MM-DD HH:mm:ss`） | 2025-10-16 12:49:52 |
+| extra_data | string | 扩展数据（JSON格式） | {"user_id": "12345", "source": "mobile_app"} |
 | timestamp | int | 时间戳（秒） | 1760622065 |
 | sign | string | 回调签名 | 9f1c... |
 
@@ -134,6 +134,11 @@ POST `/api/v1/merchant/balance`
 - 返回非 `success`、5xx、超时等会被视为失败，系统带有重试与监控补偿。
 
 注意：根据策略，只有 `status=3(支付成功)` 会发送回调；已关闭等状态不回调。
+
+### Debug模式说明
+- 当请求参数中包含 `debug=1` 时，系统将跳过签名验证
+- 此模式仅用于开发和测试环境，生产环境请勿使用
+- Debug模式下会记录详细的调试日志，便于问题排查
 
 ---
 
