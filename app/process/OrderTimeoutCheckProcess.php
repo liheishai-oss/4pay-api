@@ -54,25 +54,21 @@ class OrderTimeoutCheckProcess
                 'current_time' => date('Y-m-d H:i:s')
             ]);
 
-            // 1. 查找超时的待支付和支付中订单
+            // 1. 查找超时的待支付订单
             $timeoutOrders = $this->getTimeoutOrders($timeoutTime);
             
             // 2. 查找所有支付中的订单（不管是否超时）
             $processingOrders = $this->getProcessingOrders();
             
-            // 3. 查找已关闭但可能有第三方订单号的订单（用于检查是否被错误关闭）
-            $closedOrders = $this->getClosedOrdersWithThirdPartyOrderNo();
-            
-            // 合并三个数组，去重
-            $allOrders = array_merge($timeoutOrders, $processingOrders, $closedOrders);
+            // 合并两个数组，去重
+            $allOrders = array_merge($timeoutOrders, $processingOrders);
             $allOrders = array_unique($allOrders, SORT_REGULAR);
             
             if (empty($allOrders)) {
                 Log::info('未找到需要检查的订单', [
                     'trace_id' => $traceId,
                     'timeout_orders_count' => count($timeoutOrders),
-                    'processing_orders_count' => count($processingOrders),
-                    'closed_orders_count' => count($closedOrders)
+                    'processing_orders_count' => count($processingOrders)
                 ]);
                 return;
             }
@@ -82,7 +78,6 @@ class OrderTimeoutCheckProcess
                 'total_count' => count($allOrders),
                 'timeout_orders_count' => count($timeoutOrders),
                 'processing_orders_count' => count($processingOrders),
-                'closed_orders_count' => count($closedOrders),
                 'order_nos' => array_column($allOrders, 'order_no')
             ]);
 
@@ -637,13 +632,13 @@ class OrderTimeoutCheckProcess
     }
     
     /**
-     * 获取超时订单
+     * 获取超时订单（只查询未支付状态）
      * @param string $timeoutTime 超时时间点
      * @return array 超时订单列表
      */
     private function getTimeoutOrders(string $timeoutTime): array
     {
-        return Order::whereIn('status', [1, 2]) // 1-待支付，2-支付中
+        return Order::where('status', 1) // 1-待支付
             ->where('created_at', '<', $timeoutTime)
             ->whereNull('paid_time') // 未支付
             ->select([
@@ -670,23 +665,6 @@ class OrderTimeoutCheckProcess
             ->toArray();
     }
     
-    /**
-     * 获取已关闭但有第三方订单号的订单（用于检查是否被错误关闭）
-     * @return array
-     */
-    private function getClosedOrdersWithThirdPartyOrderNo(): array
-    {
-        return Order::where('status', 6) // 6-已关闭
-            ->whereNotNull('third_party_order_no') // 有第三方订单号
-            ->where('third_party_order_no', '!=', '') // 第三方订单号不为空
-            ->whereNull('paid_time') // 未支付（被错误关闭）
-            ->select([
-                'id', 'order_no', 'merchant_order_no', 'merchant_id', 
-                'amount', 'status', 'created_at', 'expire_time', 'channel_id', 'third_party_order_no'
-            ])
-            ->get()
-            ->toArray();
-    }
     
     /**
      * 判断供应商订单是否已支付
