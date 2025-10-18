@@ -247,11 +247,11 @@ class OrderManagementService
 
         return [
             'total_orders' => $totalOrders,
-            'total_amount' => $totalAmount,
+            'total_amount' => round($totalAmount / 100, 2), // 分转元
             'paid_orders' => $paidOrders,
-            'paid_amount' => $paidAmount,
+            'paid_amount' => round($paidAmount / 100, 2), // 分转元
             'unpaid_orders' => $unpaidOrders,
-            'unpaid_amount' => $unpaidAmount,
+            'unpaid_amount' => round($unpaidAmount / 100, 2), // 分转元
             'success_rate' => $successRate
         ];
     }
