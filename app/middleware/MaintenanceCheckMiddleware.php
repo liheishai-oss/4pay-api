@@ -38,14 +38,14 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
             
             // 屏蔽特定本地访问地址的维护状态验证
             // 只允许 127.0.0.1:8787 和 localhost:8787 跳过维护检查
-            if ($host === '127.0.0.1:8787' || $host === 'localhost:8787') {
-                Log::info('跳过特定本地访问地址的维护状态检查', [
-                    'host' => $host,
-                    'server_port' => $serverPort,
-                    'uri' => $uri
-                ]);
-                return $handler($request);
-            }
+//            if ($host === '127.0.0.1:8787' || $host === 'localhost:8787') {
+//                Log::info('跳过特定本地访问地址的维护状态检查', [
+//                    'host' => $host,
+//                    'server_port' => $serverPort,
+//                    'uri' => $uri
+//                ]);
+//                return $handler($request);
+//            }
             
             // 排除所有管理员接口，避免管理员无法在维护期间管理服务器状态
             if (str_starts_with($uri, '/api/v1/admin')) {
@@ -56,7 +56,20 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
             }
             
             // 获取当前服务器IP
-            $currentServerIp = $this->getCurrentServerIp();
+            $currentServerIp = $request->getRealIp();
+            
+            // 如果无法获取到IP，直接返回503
+            if (empty($currentServerIp) || $currentServerIp === '127.0.0.1') {
+                Log::info('无法获取有效服务器IP，返回503维护状态', [
+                    'current_server_ip' => $currentServerIp,
+                    'request_uri' => $request->uri(),
+                    'request_method' => $request->method()
+                ]);
+                
+                return response('Service Unavailable - Maintenance Mode', 503)
+                    ->header('Content-Type', 'text/plain')
+                    ->header('Retry-After', '300');
+            }
             
             // 检查数据库表是否存在
             try {
@@ -68,13 +81,16 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
                     })
                     ->first();
             } catch (\Exception $dbError) {
-                // 如果数据库表不存在或连接失败，跳过维护状态检查
-                Log::warning('维护状态检查跳过，数据库表可能不存在', [
+                // 如果数据库表不存在或连接失败，返回503维护状态
+                Log::warning('数据库连接失败，返回503维护状态', [
                     'error' => $dbError->getMessage(),
                     'request_uri' => $request->uri(),
                     'current_server_ip' => $currentServerIp
                 ]);
-                return $handler($request);
+                
+                return response('Service Unavailable - Maintenance Mode', 503)
+                    ->header('Content-Type', 'text/plain')
+                    ->header('Retry-After', '300');
             }
 
             if ($currentServer) {
@@ -125,42 +141,8 @@ class MaintenanceCheckMiddleware implements MiddlewareInterface
             return $_SERVER['SERVER_ADDR'];
         }
         
-        // 尝试获取本地IP
-        $localIp = $this->getLocalIpAddress();
-        if ($localIp) {
-            return $localIp;
-        }
-        
         // 默认返回127.0.0.1
         return '127.0.0.1';
     }
 
-    /**
-     * 获取本地IP地址
-     * @return string|null
-     */
-    private function getLocalIpAddress(): ?string
-    {
-        try {
-            // 尝试通过socket获取本地IP
-            $socket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
-            if ($socket === false) {
-                return null;
-            }
-            
-            socket_connect($socket, '8.8.8.8', 80);
-            socket_getsockname($socket, $localIp);
-            socket_close($socket);
-            
-            return $localIp;
-        } catch (\Exception $e) {
-            // 如果socket方法失败，尝试其他方法
-            try {
-                $ip = gethostbyname(gethostname());
-                return $ip !== gethostname() ? $ip : null;
-            } catch (\Exception $e2) {
-                return null;
-            }
-        }
-    }
 }
