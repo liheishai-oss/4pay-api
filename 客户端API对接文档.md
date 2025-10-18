@@ -29,7 +29,6 @@ POST `/api/v1/order/create`
 | return_url | string | 否 | 同步跳转地址 | https://example.com/return |
 | terminal_ip | string | 是 | 终端IP地址 | 127.0.0.1 |
 | extra_data | string | 否 | 扩展数据，JSON格式 | {"custom_field": "value"} |
-| debug | string | 否 | 调试模式，设为1时跳过签名验证 | 1 |
 | sign | string | 是 | 签名（SignatureHelper 规则） | 9f1c...
 
 返回示例：
@@ -134,11 +133,6 @@ POST `/api/v1/merchant/balance`
 - 返回非 `success`、5xx、超时等会被视为失败，系统带有重试与监控补偿。
 
 注意：根据策略，只有 `status=3(支付成功)` 会发送回调；已关闭等状态不回调。
-
-### Debug模式说明
-- 当请求参数中包含 `debug=1` 时，系统将跳过签名验证
-- 此模式仅用于开发和测试环境，生产环境请勿使用
-- Debug模式下会记录详细的调试日志，便于问题排查
 
 ---
 

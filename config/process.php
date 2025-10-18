@@ -78,19 +78,19 @@ return [
         'constructor' => []
     ],
 
-//    // 回调监控进程 - 定期检查未通知的订单
-//    'callback_monitor' => [
-//        'handler' => app\process\CallbackMonitorProcess::class,
-//        'reloadable' => false,
-//        'count' => 1,
-//        'constructor' => []
-//    ],
+    // 回调监控进程 - 定期检查未通知的订单
+    'callback_monitor' => [
+        'handler' => app\process\CallbackMonitorProcess::class,
+        'reloadable' => false,
+        'count' => 1,
+        'constructor' => []
+    ],
 
-    // 回调超时检查进程 - 定期检查10分钟内没有回调成功的订单
-//    'callback_timeout_check' => [
-//        'handler' => app\process\CallbackTimeoutProcess::class,
-//        'reloadable' => false,
-//        'count' => 1,
-//        'constructor' => []
-//    ]
+//     回调超时检查进程 - 定期检查10分钟内没有回调成功的订单
+    'callback_timeout_check' => [
+        'handler' => app\process\CallbackTimeoutProcess::class,
+        'reloadable' => false,
+        'count' => 1,
+        'constructor' => []
+    ]
 ];
