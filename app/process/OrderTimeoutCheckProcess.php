@@ -38,7 +38,8 @@ class OrderTimeoutCheckProcess
     private function checkTimeoutOrders(): void
     {
 
-        $traceId = $this->generateTraceId();
+        // 超时检查进程使用统一的trace_id
+        $traceId = 'timeout_check_' . date('YmdHis') . '_' . substr(md5(uniqid(mt_rand(), true)), 0, 8);
         
         try {
             // 获取订单有效期配置（分钟）
@@ -830,12 +831,15 @@ class OrderTimeoutCheckProcess
                 return;
             }
             
+            // 使用订单的原始trace_id，如果没有则使用传入的trace_id
+            $orderTraceId = $order->trace_id ?: $traceId;
+            
             // 创建TraceService实例
             $traceService = new \app\service\TraceService();
             
             // 记录订单状态更新步骤
             $traceService->logLifecycleStep(
-                $traceId,
+                $orderTraceId,
                 $order->id,
                 $order->merchant_id,
                 'order_status_updated',
@@ -855,7 +859,7 @@ class OrderTimeoutCheckProcess
             );
 
             Log::info('OrderTimeoutCheckProcess 订单状态更新已记录到链路追踪', [
-                'trace_id' => $traceId,
+                'trace_id' => $orderTraceId,
                 'order_no' => $order->order_no,
                 'old_status' => $oldStatus,
                 'new_status' => 3,

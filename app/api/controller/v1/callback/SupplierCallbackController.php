@@ -186,8 +186,8 @@ class SupplierCallbackController
     private function logOrderStatusUpdateToTrace(\app\model\Order $order, int $oldStatus, \app\service\thirdparty_payment\PaymentResult $result, string $paymentName): void
     {
         try {
-            // 获取或创建trace_id
-            $traceId = \app\common\helpers\TraceIdHelper::get();
+            // 使用订单的原始trace_id，如果没有则生成新的
+            $traceId = $order->trace_id ?: \app\common\helpers\TraceIdHelper::get();
             
             // 创建TraceService实例
             $traceService = new \app\service\TraceService();
@@ -249,8 +249,8 @@ class SupplierCallbackController
                 return;
             }
 
-            // 获取或创建trace_id
-            $traceId = TraceIdHelper::get();
+            // 使用订单的原始trace_id，如果没有则生成新的
+            $traceId = $order->trace_id ?: TraceIdHelper::get();
             
             // 创建TraceService实例
             $traceService = new TraceService();

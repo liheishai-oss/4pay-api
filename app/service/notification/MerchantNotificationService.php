@@ -665,8 +665,8 @@ class MerchantNotificationService
     private function logMerchantNotificationToTrace(Order $order, array $notifyData, string $status, array $extraData = []): void
     {
         try {
-            // 获取或创建trace_id
-            $traceId = TraceIdHelper::get();
+            // 使用订单的原始trace_id，如果没有则生成新的
+            $traceId = $order->trace_id ?: TraceIdHelper::get();
             
             // 创建TraceService实例
             $traceService = new TraceService();
