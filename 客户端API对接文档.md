@@ -49,7 +49,7 @@ POST `/api/v1/order/create`
   "data": {
     "order_no": "BY20251019103004C4CA9643",
     "trace_id": "3d26a574-3daf-4372-9154-5db34b38faf2",
-    "payment_url": "https://mclient.alipay.lu/v1/alipay/order/payment?require_id=P732025101910300526126"
+    "payment_url": "http://127.0.0.1/v1/alipay/order/payment?require_id=P732025101910300526126"
   }
 }
 ```
@@ -63,7 +63,7 @@ POST `/api/v1/order/create`
 | message | string | 返回消息 | "订单创建成功" |
 | data.order_no | string | 平台订单号 | "BY20251019103004C4CA9643" |
 | data.trace_id | string | 追踪ID | "3d26a574-3daf-4372-9154-5db34b38faf2" |
-| data.payment_url | string | 支付链接 | "https://mclient.alipay.lu/v1/alipay/order/payment?require_id=..." |
+| data.payment_url | string | 支付链接 | "http://127.0.0.1/v1/alipay/order/payment?require_id=..." |
 
 ---
 
