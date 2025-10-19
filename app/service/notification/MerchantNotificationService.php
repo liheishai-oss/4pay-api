@@ -693,13 +693,14 @@ class MerchantNotificationService
             $traceService->logLifecycleStep(
                 $traceId,
                 $order->id,
-                $order->order_no,
-                $order->merchant_order_no,
                 $order->merchant_id,
                 $stepName,
                 $status,
                 $stepData,
-                0
+                null,
+                0,
+                $order->order_no,
+                $order->merchant_order_no
             );
 
             Log::info('MerchantNotificationService 已记录到订单链路追踪', [

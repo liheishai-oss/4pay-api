@@ -377,8 +377,6 @@ class OrderManagementService
             $traceService->logLifecycleStep(
                 $traceId,
                 $order->id,
-                $order->order_no,
-                $order->merchant_order_no,
                 $order->merchant_id,
                 'manual_callback_triggered',
                 'success',
@@ -390,7 +388,10 @@ class OrderManagementService
                     'timestamp' => date('Y-m-d H:i:s'),
                     'description' => '管理员手动触发回调补发'
                 ],
-                0 // 人工触发，耗时0ms
+                null,
+                0, // 人工触发，耗时0ms
+                $order->order_no,
+                $order->merchant_order_no
             );
             
             \support\Log::info('人工补发回调链路追踪记录', [

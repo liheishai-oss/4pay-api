@@ -457,8 +457,6 @@ class CallbackMonitorService
             $traceService->logLifecycleStep(
                 $traceId,
                 $order->id,
-                $order->order_no,
-                $order->merchant_order_no,
                 $order->merchant_id,
                 'auto_callback_triggered',
                 'success',
@@ -472,7 +470,10 @@ class CallbackMonitorService
                     'timestamp' => date('Y-m-d H:i:s'),
                     'description' => '系统自动检测到未回调订单并触发补发'
                 ],
-                0
+                null,
+                0,
+                $order->order_no,
+                $order->merchant_order_no
             );
             
             Log::info('自动补发回调链路追踪记录', [
