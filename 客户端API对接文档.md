@@ -44,6 +44,17 @@ POST `/api/v1/order/create`
 }
 ```
 
+返回字段说明：
+
+| 字段 | 类型 | 说明 |
+| - | - | - |
+| code | int | HTTP状态码 |
+| status | boolean | 请求是否成功 |
+| message | string | 返回消息 |
+| data.order_no | string | 平台订单号 |
+| data.trace_id | string | 追踪ID |
+| data.payment_url | string | 支付链接 |
+
 ---
 
 ## 二、订单查询
@@ -82,6 +93,26 @@ POST `/api/v1/order/query`
 }
 ```
 
+返回字段说明：
+
+| 字段 | 类型 | 说明 |
+| - | - | - |
+| code | int | HTTP状态码 |
+| status | boolean | 请求是否成功 |
+| message | string | 返回消息 |
+| data.merchant_key | string | 商户唯一标识 |
+| data.order_no | string | 平台订单号 |
+| data.merchant_order_no | string | 商户订单号 |
+| data.third_party_order_no | string | 第三方订单号 |
+| data.trace_id | string | 追踪ID |
+| data.status | string | 订单状态（支付中、支付成功、已关闭等） |
+| data.amount | string | 订单金额 |
+| data.fee | string | 手续费 |
+| data.subject | string | 订单标题 |
+| data.created_at | string | 创建时间 |
+| data.paid_time | string/null | 支付时间（null表示未支付） |
+| data.extra_data | string | 扩展数据（JSON格式） |
+
 ---
 
 ## 三、商户余额查询
@@ -108,6 +139,17 @@ POST `/api/v1/merchant/balance`
   }
 }
 ```
+
+返回字段说明：
+
+| 字段 | 类型 | 说明 |
+| - | - | - |
+| code | int | HTTP状态码 |
+| status | boolean | 请求是否成功 |
+| message | string | 返回消息 |
+| data.merchant_key | string | 商户唯一标识 |
+| data.balance | string | 账户余额（元） |
+| data.trace_id | string | 追踪ID |
 
 ---
 
