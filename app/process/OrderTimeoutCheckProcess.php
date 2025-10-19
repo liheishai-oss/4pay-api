@@ -469,6 +469,9 @@ class OrderTimeoutCheckProcess
                     'supplier_paid_time' => $supplierPaidTime
                 ]);
                 
+                // 记录订单状态更新到链路追踪
+                $this->logOrderStatusUpdateToTrace($orderId, $oldStatus, $result, $traceId);
+                
                 // 触发商户回调通知
                 $this->triggerMerchantCallback($orderId, $orderNo, $traceId);
             } else {
@@ -811,6 +814,63 @@ class OrderTimeoutCheckProcess
         return 'timeout_' . date('YmdHis') . '_' . substr(md5(uniqid(mt_rand(), true)), 0, 8);
     }
     
+    /**
+     * 记录订单状态更新到链路追踪
+     * @param int $orderId
+     * @param int $oldStatus
+     * @param \app\service\thirdparty_payment\PaymentResult $result
+     * @param string $traceId
+     */
+    private function logOrderStatusUpdateToTrace(int $orderId, int $oldStatus, \app\service\thirdparty_payment\PaymentResult $result, string $traceId): void
+    {
+        try {
+            // 获取订单信息
+            $order = Order::find($orderId);
+            if (!$order) {
+                return;
+            }
+            
+            // 创建TraceService实例
+            $traceService = new \app\service\TraceService();
+            
+            // 记录订单状态更新步骤
+            $traceService->logLifecycleStep(
+                $traceId,
+                $order->id,
+                $order->merchant_id,
+                'order_status_updated',
+                'success',
+                [
+                    'old_status' => $oldStatus,
+                    'new_status' => 3, // 支付成功
+                    'update_source' => 'timeout_check_process',
+                    'transaction_id' => $result->getTransactionId(),
+                    'paid_time' => $order->paid_time,
+                    'update_time' => date('Y-m-d H:i:s')
+                ],
+                null,
+                0,
+                $order->order_no,
+                $order->merchant_order_no
+            );
+
+            Log::info('OrderTimeoutCheckProcess 订单状态更新已记录到链路追踪', [
+                'trace_id' => $traceId,
+                'order_no' => $order->order_no,
+                'old_status' => $oldStatus,
+                'new_status' => 3,
+                'update_source' => 'timeout_check_process'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('OrderTimeoutCheckProcess 记录订单状态更新链路追踪失败', [
+                'trace_id' => $traceId,
+                'order_id' => $orderId,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
     /**
      * 触发商户回调通知
      * @param int $orderId
