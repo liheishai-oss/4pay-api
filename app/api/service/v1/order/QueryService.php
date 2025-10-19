@@ -30,7 +30,6 @@ class QueryService
     {
         try {
         $merchantKey = $data['merchant_key'];
-        $queryType = $data['query_type'];
         
         // 通过数据仓库获取商户信息
         $merchant = $this->repository->getMerchantByKey($merchantKey);
@@ -38,9 +37,9 @@ class QueryService
             throw new MyBusinessException('商户不存在7');
         }
 
-        // 根据查询类型获取订单信息
+        // 根据提供的参数自动判断查询类型
         $order = null;
-        if ($queryType === 'platform') {
+        if (isset($data['order_no'])) {
             $order = $this->repository->getOrderByOrderNo($data['order_no']);
         } else {
             $order = $this->repository->getOrderByMerchantOrderNo($data['merchant_order_no']);
@@ -64,7 +63,7 @@ class QueryService
             'order_no'             => $order->order_no,
             'merchant_order_no'    => $order->merchant_order_no,
             'third_party_order_no' => $order->third_party_order_no,
-            'trace_id'             => TraceIdHelper::getFromOrder($order),
+            'trace_id'             => TraceIdHelper::get(),
             'status'               => OrderStatus::getText($order->status),
             'amount'               => MoneyHelper::convertToYuan($order->amount),
             'fee'                  => MoneyHelper::convertToYuan($order->fee),

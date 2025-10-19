@@ -28,11 +28,18 @@ class PreConditionValidator
             throw new MyBusinessException('请求已过期');
         }
 
-        return [
+        $result = [
             'merchant_key' => $data['merchant_key'],
             'timestamp' => (int) $data['timestamp'],
             'sign' => $data['sign']
         ];
+        
+        // 包含debug字段（如果存在）
+        if (isset($data['debug'])) {
+            $result['debug'] = $data['debug'];
+        }
+        
+        return $result;
     }
 }
 

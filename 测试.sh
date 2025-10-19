@@ -72,7 +72,6 @@ generate_test_data() {
     cat > ${TEST_RESULTS_DIR}/test_data.json << EOF
 {
     "merchant_key": "${TEST_MERCHANT_KEY}",
-    "nonce": "${NONCE}",
     "merchant_order_no": "${ORDER_NO}",
     "order_amount": "1",
     "product_code": 8416,
@@ -137,7 +136,6 @@ test_basic_functions() {
     "merchant_key": "${TEST_MERCHANT_KEY}",
     "order_no": "${ORDER_NO_FROM_RESPONSE:-${ORDER_NO}}",
     "timestamp": $(date +%s),
-    "nonce": "$(openssl rand -hex 16)",
     "debug": "1"
 }
 EOF
@@ -170,7 +168,6 @@ EOF
 {
     "merchant_key": "${TEST_MERCHANT_KEY}",
     "timestamp": $(date +%s),
-    "nonce": "$(openssl rand -hex 16)",
     "debug": "1"
 }
 EOF
@@ -238,7 +235,6 @@ EOF
     "merchant_key": "${TEST_MERCHANT_KEY}",
     "order_no": "${ORDER_NO}",
     "timestamp": $(date +%s),
-    "nonce": "$(openssl rand -hex 16)",
     "debug": "1"
 }
 EOF
@@ -258,7 +254,6 @@ EOF
 {
     "merchant_key": "${TEST_MERCHANT_KEY}",
     "timestamp": $(date +%s),
-    "nonce": "$(openssl rand -hex 16)",
     "debug": "1"
 }
 EOF
@@ -284,8 +279,7 @@ wrk.headers["Content-Type"] = "application/json"
 -- 订单创建请求
 function create_order()
     local timestamp = os.time()
-    local nonce = math.random(100000, 999999)
-    local order_no = "WRK_TEST_" .. timestamp .. "_" .. nonce
+    local order_no = "WRK_TEST_" .. timestamp .. "_" .. math.random(100000, 999999)
     
     return string.format([[
 {
@@ -298,9 +292,8 @@ function create_order()
     "terminal_ip": "127.0.0.1",
     "debug": "1",
     "timestamp": %d,
-    "nonce": "%d"
 }
-]], order_no, timestamp, nonce)
+]], order_no, timestamp)
 end
 
 wrk.body = create_order()

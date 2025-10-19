@@ -291,6 +291,16 @@ Route::group('/api/v1/admin', function() {
         Route::add(['GET', 'OPTIONS'], '/stats', [app\admin\controller\v1\ServerManagementController::class, 'getServerStats']);
     });
 
+    // 链路追踪路由
+    Route::group('/trace', function () {
+        Route::add(['GET', 'OPTIONS'], '/search', [app\admin\controller\v1\TraceController::class, 'search']);
+        Route::add(['GET', 'OPTIONS'], '/lifecycle/{traceId}', [app\admin\controller\v1\TraceController::class, 'lifecycleDetail']);
+        Route::add(['GET', 'OPTIONS'], '/query/{traceId}', [app\admin\controller\v1\TraceController::class, 'queryDetail']);
+        Route::add(['GET', 'OPTIONS'], '/statistics/{traceId}', [app\admin\controller\v1\TraceController::class, 'statistics']);
+        Route::add(['GET', 'OPTIONS'], '/list', [app\admin\controller\v1\TraceController::class, 'index']);
+        Route::add(['POST', 'OPTIONS'], '/clean', [app\admin\controller\v1\TraceController::class, 'clean']);
+    });
+
     // 商户回调监控路由
     Route::group('/merchant-callback-monitor', function () {
         Route::add(['GET', 'OPTIONS'], '/real-time-data', [app\admin\controller\v1\MerchantCallbackMonitorController::class, 'getRealTimeData']);
@@ -364,9 +374,6 @@ Route::group('/api/v1', function () {
         Route::add(['POST', 'OPTIONS'], '/balance', [app\api\controller\v1\merchant\BalanceController::class, 'query']);
     });
 
-    // 简单测试路由（无中间件）
-    Route::add(['POST', 'OPTIONS'], '/callback/simple-test', [app\api\controller\v1\callback\TestController::class, 'test']);
-    
 
 
 

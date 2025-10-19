@@ -21,7 +21,6 @@ POST `/api/v1/order/create`
 | 字段 | 类型 | 必填 | 说明 | 示例 |
 | - | - | - | - | - |
 | merchant_key | string | 是 | 商户唯一标识 | MCH_68F0E79CA6E42_20251016 |
-| nonce | string | 是 | 随机不重复字符串 | 978-0-461-13992-1 |
 | merchant_order_no | string | 是 | 商户订单号 | 978-0-461-13992-1 |
 | order_amount | string | 是 | 订单金额 | 1.00 |
 | product_code | string | 是 | 产品编码 | "8416" |
@@ -140,30 +139,49 @@ POST `/api/v1/merchant/balance`
 签名与验签遵循 `app/common/helpers/SignatureHelper.php`：
 
 规则摘要：
-1. 排除字段：`sign`、`client_ip`、`entities_id` 不参与签名。
+1. 排除字段：`sign`、`client_ip`、`entities_id`、`debug` 不参与签名。
 2. 字段选择：如未指定参与字段列表，默认取请求参数中（去空值后）的全部字段键集合。
 3. 排序：对参与的字段名进行字典序排序；
 4. 拼接：将参与字段的"值"按排序结果顺序直接拼接为一个字符串（仅值拼接，不包含键名与连接符）；
-5. 计算：`md5( hash_hmac('sha256', stringToSign, secretKey) )` 得到签名字符串。
+5. 计算：`md5(stringToSign + secretKey)` 得到签名字符串。
+
+### 不同接口的签名字段
+
+**订单创建**：使用所有字段（除排除字段外）
+- 字段：`merchant_key`, `merchant_order_no`, `order_amount`, `product_code`, `notify_url`, `return_url`, `terminal_ip`, `extra_data`, `order_amount_cents`
+
+**订单查询**：使用特定字段（二选一）
+- 字段：`merchant_key`, `timestamp`, `order_no` 或 `merchant_order_no`（二选一）
+
+**余额查询**：使用所有字段（除排除字段外）
+- 字段：`merchant_key`, `timestamp`
 
 伪代码：
 ```php
-function sign(array $params, string $secretKey, array $signFields = [], string $algo = 'sha256'): string {
-    // 自动选择字段
-    if (empty($signFields)) {
-        ksort($params);
-        foreach ($params as $k => $v) {
-            if ($v === '' || $v === null) continue;
-            $signFields[] = $k;
+function sign(array $params, string $secretKey, array $signFields = []): string {
+    // 移除排除字段
+    unset($params['sign'], $params['client_ip'], $params['entities_id'], $params['debug']);
+    
+    // 如果指定了签名字段，只使用指定的字段
+    if (!empty($signFields)) {
+        $filteredParams = [];
+        foreach ($signFields as $field) {
+            if (isset($params[$field])) {
+                $filteredParams[$field] = $params[$field];
+            }
+        }
+        $params = $filteredParams;
+    }
+    
+    // 排序并拼接值
+    ksort($params);
+    $stringToSign = '';
+    foreach ($params as $key => $value) {
+        if ($value !== '' && $value !== null) {
+            $stringToSign .= (string)$value;
         }
     }
-    // 排序并拼接值
-    sort($signFields, SORT_STRING);
-    $stringToSign = '';
-    foreach ($signFields as $field) {
-        $stringToSign .= (string)($params[$field] ?? '');
-    }
-    return md5(hash_hmac($algo, $stringToSign, $secretKey));
+    return md5($stringToSign . $secretKey);
 }
 ```
 

@@ -25,7 +25,6 @@ class CallbackTimeoutProcess
 
         // 每5分钟检查一次回调超时的订单
         new \Workerman\Crontab\Crontab('*/5 * * * *', function(){
-            echo "开始检查回调超时订单";
             $this->checkCallbackTimeout();
         });
         

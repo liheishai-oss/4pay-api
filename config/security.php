@@ -13,10 +13,9 @@ return [
         'timeout' => 300,          // 签名有效期（秒）
     ],
     
-    // 防重放攻击配置
+    // 防重放攻击配置（已禁用）
     'anti_replay' => [
-        'nonce_timeout' => 300,    // nonce有效期（秒）
-        'enabled' => true,         // 是否启用防重放
+        'enabled' => false,        // 已禁用防重放验证
     ],
     
     // 频率限制配置（开放平台已禁用）
