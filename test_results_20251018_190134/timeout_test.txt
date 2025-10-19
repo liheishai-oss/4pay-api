@@ -1,1 +1,0 @@
-./测试.sh: line 390: timeout: command not found

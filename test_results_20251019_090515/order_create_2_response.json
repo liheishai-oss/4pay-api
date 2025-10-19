@@ -1,1 +1,0 @@
-{"code":200,"status":true,"message":"订单创建成功","data":{"order_no":"BY20251019090519C4CA8369","trace_id":"e439e5f2-57d8-4cf2-8395-2a7202a44da4","payment_url":"https:\/\/mclient.alipay.lu\/v1\/alipay\/order\/payment?require_id=P732025101909051959559"}}
