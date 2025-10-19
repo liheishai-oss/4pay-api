@@ -4,7 +4,6 @@
 
 
 ### 环境与基础信息
-- 基础路径：`/api/v1`
 - 编码：UTF-8，`application/json`
 - 时间格式：`YYYY-MM-DD HH:mm:ss`
 - 金额单位：元
