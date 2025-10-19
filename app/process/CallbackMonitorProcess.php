@@ -23,15 +23,14 @@ class CallbackMonitorProcess
             'start_time' => date('Y-m-d H:i:s')
         ]);
 
-        // 每30秒检查一次未通知的订单
+        // 每5秒检查一次未通知的订单
         new \Workerman\Crontab\Crontab('*/5 * * * * *', function(){
-//            echo "开始检查回调订单";
             $this->checkUnnotifiedOrders();
         });
         
         Log::info('回调监控进程已启动', [
             'process_name' => 'CallbackMonitorProcess',
-            'check_interval' => '30秒',
+            'check_interval' => '5秒',
             'description' => '监控支付成功但5秒内没有通知的订单'
         ]);
     }

@@ -324,6 +324,9 @@ class CallbackMonitorService
                         continue;
                     }
 
+                    // 记录自动补发回调的链路追踪
+                    $this->logAutoCallbackTrace($order);
+
                     // 触发通知
                     $notificationService = new MerchantNotificationService();
                     $notificationService->notifyMerchantAsync($order);
@@ -436,6 +439,55 @@ class CallbackMonitorService
                 'error' => $e->getMessage()
             ]);
             return false;
+        }
+    }
+
+    /**
+     * 记录自动补发回调的链路追踪
+     */
+    private function logAutoCallbackTrace(Order $order): void
+    {
+        try {
+            $traceService = new \app\service\TraceService();
+            
+            // 生成自动补发回调的追踪ID
+            $traceId = 'auto_callback_' . $order->id . '_' . time();
+            
+            // 记录自动补发回调步骤
+            $traceService->logLifecycleStep(
+                $traceId,
+                $order->id,
+                $order->order_no,
+                $order->merchant_order_no,
+                $order->merchant_id,
+                'auto_callback_triggered',
+                'success',
+                [
+                    'action' => 'auto_callback_retry',
+                    'triggered_by' => 'callback_monitor_process',
+                    'order_status' => $order->status,
+                    'notify_url' => $order->notify_url,
+                    'paid_time' => $order->paid_time,
+                    'time_since_paid' => time() - strtotime($order->paid_time) . '秒',
+                    'timestamp' => date('Y-m-d H:i:s'),
+                    'description' => '系统自动检测到未回调订单并触发补发'
+                ],
+                0
+            );
+            
+            Log::info('自动补发回调链路追踪记录', [
+                'trace_id' => $traceId,
+                'order_id' => $order->id,
+                'order_no' => $order->order_no,
+                'action' => 'auto_callback_retry'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('记录自动补发回调链路追踪失败', [
+                'order_id' => $order->id,
+                'order_no' => $order->order_no,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 }
