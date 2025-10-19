@@ -35,9 +35,8 @@ class TraceService
         ?string $merchantOrderNo = null
     ): void {
         try {
-            $trace = new OrderLifecycleTrace();
-            $trace->timestamps = false; // 禁用自动时间戳
-            $trace->fill([
+            // 使用原生SQL插入，使用数据库的NOW(6)确保微秒时间戳正确保存
+            \support\Db::table('fourth_party_payment_order_lifecycle_traces')->insert([
                 'trace_id' => $traceId,
                 'order_id' => $orderId,
                 'order_no' => $orderNo,
@@ -45,13 +44,12 @@ class TraceService
                 'merchant_id' => $merchantId,
                 'step_name' => $stepName,
                 'step_status' => $status,
-                'step_data' => $data,
+                'step_data' => json_encode($data),
                 'parent_step_id' => $parentStepId,
                 'duration_ms' => $durationMs,
-                'created_at' => $this->getMicrosecondTimestamp(),
-                'updated_at' => $this->getMicrosecondTimestamp()
+                'created_at' => \support\Db::raw('NOW(6)'),
+                'updated_at' => \support\Db::raw('NOW(6)')
             ]);
-            $trace->save();
 
             // 同时记录到现有日志系统，保持兼容性
             Log::info("Lifecycle Step: {$stepName}", [
@@ -96,9 +94,8 @@ class TraceService
         ?string $merchantOrderNo = null
     ): void {
         try {
-            $trace = new OrderQueryTrace();
-            $trace->timestamps = false; // 禁用自动时间戳
-            $trace->fill([
+            // 使用原生SQL插入，使用数据库的NOW(6)确保微秒时间戳正确保存
+            \support\Db::table('fourth_party_payment_order_query_traces')->insert([
                 'trace_id' => $traceId,
                 'order_id' => $orderId,
                 'order_no' => $orderNo,
@@ -107,12 +104,11 @@ class TraceService
                 'query_type' => $queryType,
                 'step_name' => $stepName,
                 'step_status' => $status,
-                'step_data' => $data,
+                'step_data' => json_encode($data),
                 'duration_ms' => $durationMs,
-                'created_at' => $this->getMicrosecondTimestamp(),
-                'updated_at' => $this->getMicrosecondTimestamp()
+                'created_at' => \support\Db::raw('NOW(6)'),
+                'updated_at' => \support\Db::raw('NOW(6)')
             ]);
-            $trace->save();
 
             // 同时记录到现有日志系统，保持兼容性
             Log::info("Query Step: {$stepName}", [
