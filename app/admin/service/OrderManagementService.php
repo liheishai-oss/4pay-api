@@ -318,15 +318,39 @@ class OrderManagementService
                     throw new \Exception('只有支付成功的订单才能回调');
                 }
 
-                // 这里应该调用实际的回调逻辑
-                // 例如：重新发送回调通知给商户
-                $order->notify_status = 0; // 重置通知状态
-                $order->save();
+                // 检查是否有回调地址
+                if (empty($order->notify_url)) {
+                    throw new \Exception('订单没有回调地址');
+                }
+
+                // 记录人工补发回调的链路追踪
+                $this->logManualCallbackTrace($order);
+
+                // 使用 MerchantNotificationService 实际触发回调
+                $notificationService = new \app\service\notification\MerchantNotificationService();
+                $notificationService->notifyMerchantAsync($order);
+
+                // 记录日志
+                \support\Log::info('人工补发回调', [
+                    'order_id' => $order->id,
+                    'order_no' => $order->order_no,
+                    'merchant_order_no' => $order->merchant_order_no,
+                    'merchant_id' => $order->merchant_id,
+                    'notify_url' => $order->notify_url,
+                    'action' => 'manual_callback_retry'
+                ]);
 
                 $successCount++;
             } catch (\Exception $e) {
                 $failedCount++;
                 $errors[] = "订单 {$orderId}: " . $e->getMessage();
+                
+                // 记录错误日志
+                \support\Log::error('人工补发回调失败', [
+                    'order_id' => $orderId,
+                    'error' => $e->getMessage(),
+                    'action' => 'manual_callback_retry'
+                ]);
             }
         }
 
@@ -334,8 +358,55 @@ class OrderManagementService
             'success_count' => $successCount,
             'failed_count' => $failedCount,
             'errors' => $errors,
-            'message' => count($ids) === 1 ? '回调成功' : "批量回调完成，成功: {$successCount}, 失败: {$failedCount}"
+            'message' => count($ids) === 1 ? '回调已触发' : "批量回调完成，成功: {$successCount}, 失败: {$failedCount}"
         ];
+    }
+
+    /**
+     * 记录人工补发回调的链路追踪
+     */
+    private function logManualCallbackTrace(Order $order): void
+    {
+        try {
+            $traceService = new \app\service\TraceService();
+            
+            // 生成人工补发回调的追踪ID
+            $traceId = 'manual_callback_' . $order->id . '_' . time();
+            
+            // 记录人工补发回调步骤
+            $traceService->logLifecycleStep(
+                $traceId,
+                $order->id,
+                $order->order_no,
+                $order->merchant_order_no,
+                $order->merchant_id,
+                'manual_callback_triggered',
+                'success',
+                [
+                    'action' => 'manual_callback_retry',
+                    'triggered_by' => 'admin_panel',
+                    'order_status' => $order->status,
+                    'notify_url' => $order->notify_url,
+                    'timestamp' => date('Y-m-d H:i:s'),
+                    'description' => '管理员手动触发回调补发'
+                ],
+                0 // 人工触发，耗时0ms
+            );
+            
+            \support\Log::info('人工补发回调链路追踪记录', [
+                'trace_id' => $traceId,
+                'order_id' => $order->id,
+                'order_no' => $order->order_no,
+                'action' => 'manual_callback_retry'
+            ]);
+            
+        } catch (\Exception $e) {
+            \support\Log::error('记录人工补发回调链路追踪失败', [
+                'order_id' => $order->id,
+                'order_no' => $order->order_no,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     /**

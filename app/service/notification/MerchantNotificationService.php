@@ -233,6 +233,13 @@ class MerchantNotificationService
                 $this->updateOrderNotifyStatus($order, Order::NOTIFY_STATUS_SUCCESS);
                 $this->recordMerchantSuccess($order->notify_url, $responseTime);
                 
+                // 记录回调成功到链路追踪
+                $this->logMerchantNotificationToTrace($order, $notifyData, 'callback_success', [
+                    'http_code' => $httpCode,
+                    'response_time' => round($responseTime, 3),
+                    'response_body' => $responseBody
+                ]);
+                
                 Log::info('商户通知成功', [
                     'order_no' => $order->order_no,
                     'notify_url' => $order->notify_url,
@@ -242,16 +249,42 @@ class MerchantNotificationService
             } else {
                 $this->updateOrderNotifyStatus($order, Order::NOTIFY_STATUS_FAILED);
                 $this->recordMerchantFailure($order->notify_url, $responseTime);
+                
+                // 记录回调失败到链路追踪
+                $this->logMerchantNotificationToTrace($order, $notifyData, 'callback_failed', [
+                    'http_code' => $httpCode,
+                    'response_time' => round($responseTime, 3),
+                    'response_body' => $responseBody,
+                    'failure_reason' => 'HTTP状态码非200或响应内容不符合预期'
+                ]);
+                
                 $this->scheduleRetry($order, $notifyData, $notifyLog);
             }
             
         } catch (RequestException $e) {
             $responseTime = microtime(true) - $startTime;
             $this->recordMerchantFailure($order->notify_url, $responseTime);
+            
+            // 记录回调异常到链路追踪
+            $this->logMerchantNotificationToTrace($order, $notifyData, 'callback_failed', [
+                'http_code' => $e->getCode(),
+                'response_time' => round($responseTime, 3),
+                'error_message' => $e->getMessage(),
+                'failure_reason' => 'RequestException: ' . $e->getMessage()
+            ]);
+            
             $this->handleRequestException($e, $order, $notifyData, $notifyLog);
         } catch (\Exception $e) {
             $responseTime = microtime(true) - $startTime;
             $this->recordMerchantFailure($order->notify_url, $responseTime);
+            
+            // 记录回调异常到链路追踪
+            $this->logMerchantNotificationToTrace($order, $notifyData, 'callback_failed', [
+                'http_code' => 0,
+                'response_time' => round($responseTime, 3),
+                'error_message' => $e->getMessage(),
+                'failure_reason' => 'Exception: ' . $e->getMessage()
+            ]);
             
             // 发送供货商回调商户异常告警到机器人群
             $this->sendSupplierCallbackExceptionAlert($order, $notifyLog, 0, $e->getMessage());
@@ -627,8 +660,9 @@ class MerchantNotificationService
      * @param Order $order 订单对象
      * @param array $notifyData 通知数据
      * @param string $status 状态
+     * @param array $extraData 额外数据
      */
-    private function logMerchantNotificationToTrace(Order $order, array $notifyData, string $status): void
+    private function logMerchantNotificationToTrace(Order $order, array $notifyData, string $status, array $extraData = []): void
     {
         try {
             // 获取或创建trace_id
@@ -637,24 +671,35 @@ class MerchantNotificationService
             // 创建TraceService实例
             $traceService = new TraceService();
             
+            // 构建步骤数据
+            $stepData = array_merge([
+                'notify_url' => $order->notify_url,
+                'notify_data' => $notifyData,
+                'order_status' => $order->status,
+                'order_no' => $order->order_no,
+                'merchant_order_no' => $order->merchant_order_no,
+                'callback_type' => 'merchant_notification'
+            ], $extraData);
+            
+            // 根据状态确定步骤名称
+            $stepName = match($status) {
+                'start' => 'callback_sent',
+                'callback_success' => 'callback_success',
+                'callback_failed' => 'callback_failed',
+                default => 'callback_sent'
+            };
+            
             // 记录商户通知步骤
             $traceService->logLifecycleStep(
                 $traceId,
                 $order->id,
-                $order->merchant_id,
-                'merchant_notification',
-                $status,
-                [
-                    'notify_url' => $order->notify_url,
-                    'notify_data' => $notifyData,
-                    'order_status' => $order->status,
-                    'order_no' => $order->order_no,
-                    'merchant_order_no' => $order->merchant_order_no
-                ],
-                null,
-                0,
                 $order->order_no,
-                $order->merchant_order_no
+                $order->merchant_order_no,
+                $order->merchant_id,
+                $stepName,
+                $status,
+                $stepData,
+                0
             );
 
             Log::info('MerchantNotificationService 已记录到订单链路追踪', [
