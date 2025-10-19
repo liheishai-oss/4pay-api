@@ -36,7 +36,7 @@ class TraceService
     ): void {
         try {
             // 使用原生SQL插入，使用数据库的NOW(6)确保微秒时间戳正确保存
-            \support\Db::table('fourth_party_payment_order_lifecycle_traces')->insert([
+            \support\Db::table('order_lifecycle_traces')->insert([
                 'trace_id' => $traceId,
                 'order_id' => $orderId,
                 'order_no' => $orderNo,
@@ -95,7 +95,7 @@ class TraceService
     ): void {
         try {
             // 使用原生SQL插入，使用数据库的NOW(6)确保微秒时间戳正确保存
-            \support\Db::table('fourth_party_payment_order_query_traces')->insert([
+            \support\Db::table('order_query_traces')->insert([
                 'trace_id' => $traceId,
                 'order_id' => $orderId,
                 'order_no' => $orderNo,

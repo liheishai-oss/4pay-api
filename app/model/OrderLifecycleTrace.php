@@ -6,8 +6,8 @@ use support\Model;
 
 class OrderLifecycleTrace extends Model
 {
-    // 指定数据库表名（不带前缀，Laravel会自动添加前缀）
-    protected $table = 'order_lifecycle_traces';
+    // 指定数据库表名
+    protected $table = 'fourth_party_payment_order_lifecycle_traces';
 
     // 指定主键
     protected $primaryKey = 'id';
