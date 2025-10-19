@@ -34,17 +34,15 @@ POST `/api/v1/order/create`
 ```json
 {
   "code": 200,
-  "message": "请求成功",
+  "status": true,
+  "message": "订单创建成功",
   "data": {
-    "order_no": "BY20251016204701C4CA1207",
-    "pay_url": "https://pay.example.com/xxx",
-    "status": 1
+    "order_no": "BY20251019103004C4CA9643",
+    "trace_id": "3d26a574-3daf-4372-9154-5db34b38faf2",
+    "payment_url": "https://mclient.alipay.lu/v1/alipay/order/payment?require_id=P732025101910300526126"
   }
 }
 ```
-
-状态说明：
-- 1 待支付 / 2 支付中 / 3 支付成功 / 6 已关闭
 
 ---
 
@@ -65,21 +63,21 @@ POST `/api/v1/order/query`
 ```json
 {
   "code": 200,
+  "status": true,
   "message": "查询成功",
   "data": {
     "merchant_key": "MCH_68F0E79CA6E42_20251016",
-    "order_no": "BY20251016204701C4CA1207",
-    "merchant_order_no": "978-0-461-13992-1",
-    "third_party_order_no": "P732025101620470175221",
-    "trace_id": "TRACE_20251016204701",
-    "status": "支付成功",
+    "order_no": "BY20251019103004C4CA9643",
+    "merchant_order_no": "DEMO_20251019103004_6039",
+    "third_party_order_no": "",
+    "trace_id": "5c4ec5f0-f018-497e-a8c8-31778a3fca89",
+    "status": "支付中",
     "amount": "1.00",
-    "fee": "0.01",
-    "subject": "正常测试订单",
-    "created_at": "2025-10-16 20:47:01",
-    "paid_time": "2025-10-16 20:49:52",
-    "extra_data": "{\"user_id\": \"12345\", \"source\": \"mobile_app\"}",
-    "sign": "9f1c..."
+    "fee": "1.17",
+    "subject": "订单支付",
+    "created_at": "2025-10-19 10:30:04",
+    "paid_time": null,
+    "extra_data": "{\"available_channels\":[...],\"selection_strategy\":\"enterprise_validation\",\"default_channel_id\":11}"
   }
 }
 ```
@@ -101,11 +99,12 @@ POST `/api/v1/merchant/balance`
 ```json
 {
   "code": 200,
+  "status": true,
   "message": "查询成功",
   "data": {
     "merchant_key": "MCH_68F0E79CA6E42_20251016",
-    "balance": "1000.00",
-    "sign": "9f1c..."
+    "balance": "0.00",
+    "trace_id": "c1fed143-67f4-4611-8ef4-1d2039e94eed"
   }
 }
 ```
@@ -139,16 +138,15 @@ POST `/api/v1/merchant/balance`
 签名与验签遵循 `app/common/helpers/SignatureHelper.php`：
 
 规则摘要：
-1. 排除字段：`sign`、`client_ip`、`entities_id`、`debug` 不参与签名。
-2. 字段选择：如未指定参与字段列表，默认取请求参数中（去空值后）的全部字段键集合。
-3. 排序：对参与的字段名进行字典序排序；
-4. 拼接：将参与字段的"值"按排序结果顺序直接拼接为一个字符串（仅值拼接，不包含键名与连接符）；
-5. 计算：`md5(stringToSign + secretKey)` 得到签名字符串。
+1. 字段选择：如未指定参与字段列表，默认取请求参数中（去空值后）的全部字段键集合。
+2. 排序：对参与的字段名进行字典序排序；
+3. 拼接：将参与字段的"值"按排序结果顺序直接拼接为一个字符串（仅值拼接，不包含键名与连接符）；
+4. 计算：`md5(stringToSign + secretKey)` 得到签名字符串。
 
 ### 不同接口的签名字段
 
 **订单创建**：使用所有字段（除排除字段外）
-- 字段：`merchant_key`, `merchant_order_no`, `order_amount`, `product_code`, `notify_url`, `return_url`, `terminal_ip`, `extra_data`, `order_amount_cents`
+- 字段：`merchant_key`, `merchant_order_no`, `order_amount`, `product_code`, `notify_url`, `return_url`, `terminal_ip`, `extra_data`
 
 **订单查询**：使用特定字段（二选一）
 - 字段：`merchant_key`, `timestamp`, `order_no` 或 `merchant_order_no`（二选一）
@@ -159,9 +157,6 @@ POST `/api/v1/merchant/balance`
 伪代码：
 ```php
 function sign(array $params, string $secretKey, array $signFields = []): string {
-    // 移除排除字段
-    unset($params['sign'], $params['client_ip'], $params['entities_id'], $params['debug']);
-    
     // 如果指定了签名字段，只使用指定的字段
     if (!empty($signFields)) {
         $filteredParams = [];

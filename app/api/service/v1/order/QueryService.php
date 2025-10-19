@@ -73,21 +73,7 @@ class QueryService
             'extra_data'           => $order->extra_data
         ];
 
-        // 使用SignatureHelper生成签名（trace_id不参与签名）
-        $signatureHelper = new \app\common\helpers\SignatureHelper();
-        $signData = [
-            'merchant_key'         => $merchant->merchant_key,
-            'order_no'             => $order->order_no,
-            'merchant_order_no'    => $order->merchant_order_no,
-            'third_party_order_no' => $order->third_party_order_no,
-            'status'               => OrderStatus::getText($order->status),
-            'amount'               => MoneyHelper::convertToYuan($order->amount),
-            'fee'                  => MoneyHelper::convertToYuan($order->fee),
-            'subject'              => $order->subject,
-            'created_at'           => $order->created_at->format('Y-m-d H:i:s'),
-            'paid_time'            => $order->paid_time ? $order->paid_time->format('Y-m-d H:i:s') : null
-        ];
-        $responseData['sign'] = $signatureHelper->generate($signData, $merchant->merchant_secret);
+        // 订单查询返回结果不需要签名
 
         return $responseData;
         

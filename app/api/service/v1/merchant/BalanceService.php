@@ -54,13 +54,7 @@ class BalanceService
             'trace_id'     => $traceId
         ];
 
-        // 使用SignatureHelper生成签名（trace_id不参与签名）
-        $signatureHelper = new \app\common\helpers\SignatureHelper();
-        $signData = [
-            'merchant_key' => $merchant->merchant_key,
-            'balance'      => $balanceInYuan
-        ];
-        $responseData['sign'] = $signatureHelper->generate($signData, $merchant->merchant_secret);
+        // 商户余额查询返回结果不需要签名
 
         return $responseData;
         

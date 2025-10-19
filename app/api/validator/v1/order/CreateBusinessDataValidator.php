@@ -44,7 +44,10 @@ class CreateBusinessDataValidator
         // 验证签名（debug模式下跳过）
         if (!isset($data['debug']) || $data['debug'] != '1') {
             $signatureHelper = new SignatureHelper();
-            $isValid = $signatureHelper->verify($data, $merchant->merchant_secret);
+            // 创建用于签名验证的数据副本，排除系统自动添加的字段
+            $signData = $data;
+            unset($signData['order_amount_cents']); // 排除系统自动添加的字段
+            $isValid = $signatureHelper->verify($signData, $merchant->merchant_secret);
 
             if (!$isValid) {
                 throw new MyBusinessException('签名验证失败');
@@ -105,7 +108,10 @@ class CreateBusinessDataValidator
         
         if (!isset($data['debug']) || $data['debug'] != '1') {
             $signatureHelper = new SignatureHelper();
-            $isValid = $signatureHelper->verify($data, $merchant['merchant_secret']);
+            // 创建用于签名验证的数据副本，排除系统自动添加的字段
+            $signData = $data;
+            unset($signData['order_amount_cents']); // 排除系统自动添加的字段
+            $isValid = $signatureHelper->verify($signData, $merchant['merchant_secret']);
 
             if (!$isValid) {
                 throw new MyBusinessException('签名验证失败');
