@@ -35,7 +35,9 @@ class TraceService
         ?string $merchantOrderNo = null
     ): void {
         try {
-            OrderLifecycleTrace::create([
+            $trace = new OrderLifecycleTrace();
+            $trace->timestamps = false; // 禁用自动时间戳
+            $trace->fill([
                 'trace_id' => $traceId,
                 'order_id' => $orderId,
                 'order_no' => $orderNo,
@@ -46,8 +48,10 @@ class TraceService
                 'step_data' => $data,
                 'parent_step_id' => $parentStepId,
                 'duration_ms' => $durationMs,
-                'created_at' => $this->getMicrosecondTimestamp()
+                'created_at' => $this->getMicrosecondTimestamp(),
+                'updated_at' => $this->getMicrosecondTimestamp()
             ]);
+            $trace->save();
 
             // 同时记录到现有日志系统，保持兼容性
             Log::info("Lifecycle Step: {$stepName}", [
@@ -92,7 +96,9 @@ class TraceService
         ?string $merchantOrderNo = null
     ): void {
         try {
-            OrderQueryTrace::create([
+            $trace = new OrderQueryTrace();
+            $trace->timestamps = false; // 禁用自动时间戳
+            $trace->fill([
                 'trace_id' => $traceId,
                 'order_id' => $orderId,
                 'order_no' => $orderNo,
@@ -103,8 +109,10 @@ class TraceService
                 'step_status' => $status,
                 'step_data' => $data,
                 'duration_ms' => $durationMs,
-                'created_at' => $this->getMicrosecondTimestamp()
+                'created_at' => $this->getMicrosecondTimestamp(),
+                'updated_at' => $this->getMicrosecondTimestamp()
             ]);
+            $trace->save();
 
             // 同时记录到现有日志系统，保持兼容性
             Log::info("Query Step: {$stepName}", [
