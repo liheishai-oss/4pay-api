@@ -450,8 +450,8 @@ class CallbackMonitorService
         try {
             $traceService = new \app\service\TraceService();
             
-            // 生成自动补发回调的追踪ID
-            $traceId = 'auto_callback_' . $order->id . '_' . time();
+            // 使用订单的原始trace_id，如果没有则生成新的
+            $traceId = $order->trace_id ?: TraceIdHelper::get();
             
             // 记录自动补发回调步骤
             $traceService->logLifecycleStep(

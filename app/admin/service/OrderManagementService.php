@@ -370,8 +370,8 @@ class OrderManagementService
         try {
             $traceService = new \app\service\TraceService();
             
-            // 生成人工补发回调的追踪ID
-            $traceId = 'manual_callback_' . $order->id . '_' . time();
+            // 使用订单的原始trace_id，如果没有则生成新的
+            $traceId = $order->trace_id ?: TraceIdHelper::get();
             
             // 记录人工补发回调步骤
             $traceService->logLifecycleStep(
