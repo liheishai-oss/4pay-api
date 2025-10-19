@@ -46,7 +46,7 @@ class TraceService
                 'step_data' => $data,
                 'parent_step_id' => $parentStepId,
                 'duration_ms' => $durationMs,
-                'created_at' => date('Y-m-d H:i:s')
+                'created_at' => $this->getMicrosecondTimestamp()
             ]);
 
             // 同时记录到现有日志系统，保持兼容性
@@ -103,7 +103,7 @@ class TraceService
                 'step_status' => $status,
                 'step_data' => $data,
                 'duration_ms' => $durationMs,
-                'created_at' => date('Y-m-d H:i:s')
+                'created_at' => $this->getMicrosecondTimestamp()
             ]);
 
             // 同时记录到现有日志系统，保持兼容性
@@ -379,5 +379,18 @@ class TraceService
             ]);
             throw $e;
         }
+    }
+
+    /**
+     * 获取微秒级时间戳
+     * @return string
+     */
+    private function getMicrosecondTimestamp(): string
+    {
+        $microtime = microtime(true);
+        $seconds = floor($microtime);
+        $microseconds = ($microtime - $seconds) * 1000000;
+        
+        return date('Y-m-d H:i:s.', $seconds) . sprintf('%06d', $microseconds);
     }
 }
