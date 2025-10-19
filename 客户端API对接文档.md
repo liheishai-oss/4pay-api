@@ -1,9 +1,9 @@
-## 客户端 API 对接文档
+## 百亿四方 API 对接文档
 
 本文档面向商户侧（客户端）对接，包含下单、查询、回调规范、签名说明与错误码示例。
 
+
 ### 环境与基础信息
-- 基础路径：`/api/v1`
 - 编码：UTF-8，`application/json`
 - 时间格式：`YYYY-MM-DD HH:mm:ss`
 - 金额单位：元
@@ -92,9 +92,8 @@ POST `/api/v1/order/query`
     "merchant_order_no": "DEMO_20251019103004_6039",
     "third_party_order_no": "",
     "trace_id": "5c4ec5f0-f018-497e-a8c8-31778a3fca89",
-    "status": "支付中",
+    "status": 2,
     "amount": "1.00",
-    "fee": "1.17",
     "subject": "订单支付",
     "created_at": "2025-10-19 10:30:04",
     "paid_time": null,
@@ -117,7 +116,6 @@ POST `/api/v1/order/query`
 | data.trace_id | string | 追踪ID | "5c4ec5f0-f018-497e-a8c8-31778a3fca89" |
 | data.status | int | 订单状态 | 1=待支付, 2=支付中, 3=支付成功, 4=支付失败, 5=已退款, 6=已关闭 |
 | data.amount | string | 订单金额 | "1.00" |
-| data.fee | string | 手续费 | "1.17" |
 | data.subject | string | 订单标题 | "订单支付" |
 | data.created_at | string | 创建时间 | "2025-10-19 10:30:04" |
 | data.paid_time | string\|null | 支付时间 | "2025-10-19 10:30:04" 或 null |
@@ -208,27 +206,16 @@ POST `/api/v1/merchant/balance`
 
 伪代码：
 ```php
-function sign(array $params, string $secretKey, array $signFields = []): string {
-    // 如果指定了签名字段，只使用指定的字段
-    if (!empty($signFields)) {
-        $filteredParams = [];
-        foreach ($signFields as $field) {
-            if (isset($params[$field])) {
-                $filteredParams[$field] = $params[$field];
-            }
-        }
-        $params = $filteredParams;
-    }
-    
-    // 排序并拼接值
-    ksort($params);
-    $stringToSign = '';
-    foreach ($params as $key => $value) {
+private function generateSign(array $data): string
+{
+    ksort($data);
+    $signString = '';
+    foreach ($data as $key => $value) {
         if ($value !== '' && $value !== null) {
-            $stringToSign .= (string)$value;
+            $signString .= (string)$value;
         }
     }
-    return md5($stringToSign . $secretKey);
+    return md5($signString . $this->merchantSecret);
 }
 ```
 
@@ -252,4 +239,5 @@ function sign(array $params, string $secretKey, array $signFields = []): string 
 - 先在测试环境完成签名联调；
 - 使用小额订单验证 创建/查询/回调 全链路；
 - 回调端打印并校验签名，返回 `success`；
+- 确认异常重试策略符合预期。
 - 确认异常重试策略符合预期。
