@@ -35,8 +35,8 @@ class TraceService
         ?string $merchantOrderNo = null
     ): void {
         try {
-            // 使用原生SQL插入，使用数据库的NOW(6)确保微秒时间戳正确保存
-            \support\Db::table('order_lifecycle_traces')->insert([
+            // 使用Model插入，确保微秒时间戳正确保存
+            \app\model\OrderLifecycleTrace::create([
                 'trace_id' => $traceId,
                 'order_id' => $orderId,
                 'order_no' => $orderNo,
@@ -44,11 +44,9 @@ class TraceService
                 'merchant_id' => $merchantId,
                 'step_name' => $stepName,
                 'step_status' => $status,
-                'step_data' => json_encode($data),
+                'step_data' => $data,
                 'parent_step_id' => $parentStepId,
-                'duration_ms' => $durationMs,
-                'created_at' => \support\Db::raw('NOW(6)'),
-                'updated_at' => \support\Db::raw('NOW(6)')
+                'duration_ms' => $durationMs
             ]);
 
             // 同时记录到现有日志系统，保持兼容性
@@ -94,8 +92,8 @@ class TraceService
         ?string $merchantOrderNo = null
     ): void {
         try {
-            // 使用原生SQL插入，使用数据库的NOW(6)确保微秒时间戳正确保存
-            \support\Db::table('order_query_traces')->insert([
+            // 使用Model插入，确保微秒时间戳正确保存
+            \app\model\OrderQueryTrace::create([
                 'trace_id' => $traceId,
                 'order_id' => $orderId,
                 'order_no' => $orderNo,
@@ -104,10 +102,8 @@ class TraceService
                 'query_type' => $queryType,
                 'step_name' => $stepName,
                 'step_status' => $status,
-                'step_data' => json_encode($data),
-                'duration_ms' => $durationMs,
-                'created_at' => \support\Db::raw('NOW(6)'),
-                'updated_at' => \support\Db::raw('NOW(6)')
+                'step_data' => $data,
+                'duration_ms' => $durationMs
             ]);
 
             // 同时记录到现有日志系统，保持兼容性
