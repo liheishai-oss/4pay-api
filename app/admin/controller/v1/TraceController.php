@@ -92,6 +92,7 @@ class TraceController
         }
     }
 
+
     /**
      * 获取查询链路详情
      * @param Request $request

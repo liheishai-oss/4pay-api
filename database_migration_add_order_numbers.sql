@@ -26,3 +26,4 @@ ADD INDEX idx_merchant_order_no_trace (merchant_order_no, trace_id);
 ALTER TABLE order_query_traces 
 ADD INDEX idx_order_no_trace (order_no, trace_id),
 ADD INDEX idx_merchant_order_no_trace (merchant_order_no, trace_id);
+
