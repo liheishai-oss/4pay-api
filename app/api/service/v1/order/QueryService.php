@@ -66,7 +66,6 @@ class QueryService
             'trace_id'             => TraceIdHelper::get(),
             'status'               => $order->status,
             'amount'               => MoneyHelper::convertToYuan($order->amount),
-            'fee'                  => MoneyHelper::convertToYuan($order->fee),
             'subject'              => $order->subject,
             'created_at'           => $order->created_at->format('Y-m-d H:i:s'),
             'paid_time'            => $order->paid_time ? $order->paid_time->format('Y-m-d H:i:s') : null,
