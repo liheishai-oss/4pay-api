@@ -25,7 +25,7 @@ class BusinessDataValidator
         $isValid = $signatureHelper->verify($data, $merchant->merchant_secret);
 
         if (!$isValid) {
-//            throw new MyBusinessException('签名验证失败');
+            throw new MyBusinessException('签名验证失败');
         }
     }
 }

@@ -31,7 +31,6 @@ $params = [
     'terminal_ip' => '127.0.0.1',
     'debug' => '1',
     'timestamp' => time(),
-    'nonce' => bin2hex(random_bytes(16))
 ];
 
 // 假设的商户密钥（实际需要从数据库获取）

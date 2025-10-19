@@ -45,13 +45,16 @@ class PreConditionValidator
             'sign' => $data['sign']
         ];
 
-        // 添加订单号参数
+        // 添加订单号参数（不包含query_type，因为它不参与签名验证）
         if (isset($data['order_no'])) {
             $result['order_no'] = $data['order_no'];
-            $result['query_type'] = 'platform';
         } else {
             $result['merchant_order_no'] = $data['merchant_order_no'];
-            $result['query_type'] = 'merchant';
+        }
+
+        // 包含debug字段（如果存在）
+        if (isset($data['debug'])) {
+            $result['debug'] = $data['debug'];
         }
 
         return $result;
