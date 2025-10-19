@@ -1,4 +1,4 @@
-## 客户端 API 对接文档
+## 百亿四方 API 对接文档
 
 本文档面向商户侧（客户端）对接，包含下单、查询、回调规范、签名说明与错误码示例。
 
@@ -208,27 +208,16 @@ POST `/api/v1/merchant/balance`
 
 伪代码：
 ```php
-function sign(array $params, string $secretKey, array $signFields = []): string {
-    // 如果指定了签名字段，只使用指定的字段
-    if (!empty($signFields)) {
-        $filteredParams = [];
-        foreach ($signFields as $field) {
-            if (isset($params[$field])) {
-                $filteredParams[$field] = $params[$field];
-            }
-        }
-        $params = $filteredParams;
-    }
-    
-    // 排序并拼接值
-    ksort($params);
-    $stringToSign = '';
-    foreach ($params as $key => $value) {
+private function generateSign(array $data): string
+{
+    ksort($data);
+    $signString = '';
+    foreach ($data as $key => $value) {
         if ($value !== '' && $value !== null) {
-            $stringToSign .= (string)$value;
+            $signString .= (string)$value;
         }
     }
-    return md5($stringToSign . $secretKey);
+    return md5($signString . $this->merchantSecret);
 }
 ```
 
@@ -252,4 +241,5 @@ function sign(array $params, string $secretKey, array $signFields = []): string 
 - 先在测试环境完成签名联调；
 - 使用小额订单验证 创建/查询/回调 全链路；
 - 回调端打印并校验签名，返回 `success`；
+- 确认异常重试策略符合预期。
 - 确认异常重试策略符合预期。

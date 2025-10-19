@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>百亿四方 API 对接文档</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 0;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 10px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        /* Markdown样式 */
+        h1, h2, h3, h4, h5, h6 {
+            color: #2c3e50;
+            margin: 30px 0 15px 0;
+            font-weight: 600;
+        }
+        
+        h1 {
+            font-size: 2em;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            font-size: 1.5em;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px;
+        }
+        
+        h3 {
+            font-size: 1.3em;
+            color: #34495e;
+        }
+        
+        p {
+            margin: 15px 0;
+            line-height: 1.8;
+        }
+        
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+        
+        pre {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            letter-spacing: 0.5px;
+        }
+        
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        blockquote {
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background-color: #f8f9fa;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+        
+        li {
+            margin: 8px 0;
+        }
+        
+        hr {
+            border: none;
+            height: 2px;
+            background: linear-gradient(to right, #3498db, #2ecc71);
+            margin: 30px 0;
+            border-radius: 1px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-1 { background-color: #f39c12; color: white; }
+        .status-2 { background-color: #3498db; color: white; }
+        .status-3 { background-color: #27ae60; color: white; }
+        .status-4 { background-color: #e74c3c; color: white; }
+        .status-5 { background-color: #9b59b6; color: white; }
+        .status-6 { background-color: #95a5a6; color: white; }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            table {
+                font-size: 0.9em;
+            }
+            
+            th, td {
+                padding: 8px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>百亿四方 API 对接文档</h1>
+            <p>商户侧接口对接指南</p>
+        </div>
+        
+        <div class="content">
+            <h1>客户端 API 对接文档</h1>
+            
+            <p>本文档面向商户侧（客户端）对接，包含下单、查询、回调规范、签名说明与错误码示例。</p>
+            
+            <h3>环境与基础信息</h3>
+            <ul>
+                <li>基础路径：<code>/api/v1</code></li>
+                <li>编码：UTF-8，<code>application/json</code></li>
+                <li>时间格式：<code>YYYY-MM-DD HH:mm:ss</code></li>
+                <li>金额单位：元</li>
+            </ul>
+            
+            <h3>鉴权</h3>
+            <p>商户服务端接口通过签名（sign）与密钥进行校验，详见"签名规则"。</p>
+            
+            <h3>订单状态码</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>状态码</th>
+                        <th>说明</th>
+                        <th>备注</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="status-badge status-1">1</span></td>
+                        <td>待支付</td>
+                        <td>订单已创建，等待用户支付</td>
+                    </tr>
+                    <tr>
+                        <td><span class="status-badge status-2">2</span></td>
+                        <td>支付中</td>
+                        <td>用户正在支付流程中</td>
+                    </tr>
+                    <tr>
+                        <td><span class="status-badge status-3">3</span></td>
+                        <td>支付成功</td>
+                        <td>支付完成，订单成功</td>
+                    </tr>
+                    <tr>
+                        <td><span class="status-badge status-4">4</span></td>
+                        <td>支付失败</td>
+                        <td>支付失败或被拒绝</td>
+                    </tr>
+                    <tr>
+                        <td><span class="status-badge status-5">5</span></td>
+                        <td>已退款</td>
+                        <td>订单已退款</td>
+                    </tr>
+                    <tr>
+                        <td><span class="status-badge status-6">6</span></td>
+                        <td>已关闭</td>
+                        <td>订单已关闭或取消</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <hr>
+            
+            <h2>一、创建订单</h2>
+            <p><strong>POST</strong> <code>/api/v1/order/create</code></p>
+            
+            <p><strong>请求参数（JSON）：</strong></p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>字段</th>
+                        <th>类型</th>
+                        <th>必填</th>
+                        <th>说明</th>
+                        <th>示例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>merchant_key</td>
+                        <td>string</td>
+                        <td>是</td>
+                        <td>商户唯一标识</td>
+                        <td>MCH_68F0E79CA6E42_20251016</td>
+                    </tr>
+                    <tr>
+                        <td>merchant_order_no</td>
+                        <td>string</td>
+                        <td>是</td>
+                        <td>商户订单号</td>
+                        <td>978-0-461-13992-1</td>
+                    </tr>
+                    <tr>
+                        <td>order_amount</td>
+                        <td>string</td>
+                        <td>是</td>
+                        <td>订单金额</td>
+                        <td>1.00</td>
+                    </tr>
+                    <tr>
+                        <td>product_code</td>
+                        <td>string</td>
+                        <td>是</td>
+                        <td>产品编码</td>
+                        <td>"8416"</td>
+                    </tr>
+                    <tr>
+                        <td>notify_url</td>
+                        <td>string</td>
+                        <td>是</td>
+                        <td>异步通知地址（支付成功回调）</td>
+                        <td>http://127.0.0.1/notify</td>
+                    </tr>
+                    <tr>
+                        <td>return_url</td>
+                        <td>string</td>
+                        <td>否</td>
+                        <td>同步跳转地址</td>
+                        <td>https://example.com/return</td>
+                    </tr>
+                    <tr>
+                        <td>terminal_ip</td>
+                        <td>string</td>
+                        <td>是</td>
+                        <td>终端IP地址</td>
+                        <td>127.0.0.1</td>
+                    </tr>
+                    <tr>
+                        <td>extra_data</td>
+                        <td>string</td>
+                        <td>否</td>
+                        <td>扩展数据，JSON格式</td>
+                        <td>{"custom_field": "value"}</td>
+                    </tr>
+                    <tr>
+                        <td>sign</td>
+                        <td>string</td>
+                        <td>是</td>
+                        <td>签名（SignatureHelper 规则）</td>
+                        <td>9f1c...</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <p><strong>返回示例：</strong></p>
+            <pre><code>{
+  "code": 200,
+  "status": true,
+  "message": "订单创建成功",
+  "data": {
+    "order_no": "BY20251019103004C4CA9643",
+    "trace_id": "3d26a574-3daf-4372-9154-5db34b38faf2",
+    "payment_url": "http://127.0.0.1/v1/alipay/order/payment?require_id=P732025101910300526126"
+  }
+}</code></pre>
+            
+            <p><strong>返回字段说明：</strong></p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>字段</th>
+                        <th>类型</th>
+                        <th>说明</th>
+                        <th>示例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>code</td>
+                        <td>int</td>
+                        <td>HTTP状态码</td>
+                        <td>200</td>
+                    </tr>
+                    <tr>
+                        <td>status</td>
+                        <td>boolean</td>
+                        <td>请求是否成功</td>
+                        <td>true</td>
+                    </tr>
+                    <tr>
+                        <td>message</td>
+                        <td>string</td>
+                        <td>返回消息</td>
+                        <td>"订单创建成功"</td>
+                    </tr>
+                    <tr>
+                        <td>data.order_no</td>
+                        <td>string</td>
+                        <td>平台订单号</td>
+                        <td>"BY20251019103004C4CA9643"</td>
+                    </tr>
+                    <tr>
+                        <td>data.trace_id</td>
+                        <td>string</td>
+                        <td>追踪ID</td>
+                        <td>"3d26a574-3daf-4372-9154-5db34b38faf2"</td>
+                    </tr>
+                    <tr>
+                        <td>data.payment_url</td>
+                        <td>string</td>
+                        <td>支付链接</td>
+                        <td>"http://127.0.0.1/v1/alipay/order/payment?require_id=..."</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <hr>
+            
+            <h2>二、订单查询</h2>
+            <p><strong>POST</strong> <code>/api/v1/order/query</code></p>
+            
+            <p><strong>请求参数（JSON）：</strong></p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>字段</th>
+                        <th>类型</th>
+                        <th>必填</th>
+                        <th>说明</th>
+                        <th>示例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>merchant_key</td>
+                        <td>string</td>
+                        <td>是</td>
+                        <td>商户唯一标识</td>
+                        <td>MCH_68F0E79CA6E42_20251016</td>
+                    </tr>
+                    <tr>
+                        <td>order_no</td>
+                        <td>string</td>
+                        <td>否</td>
+                        <td>平台订单号（与 merchant_order_no 二选一，同时提供时以 order_no 为准）</td>
+                        <td>BY20251016204701C4CA1207</td>
+                    </tr>
+                    <tr>
+                        <td>merchant_order_no</td>
+                        <td>string</td>
+                        <td>否</td>
+                        <td>商户订单号（与 order_no 二选一，同时提供时以 order_no 为准）</td>
+                        <td>M202510160001</td>
+                    </tr>
+                    <tr>
+                        <td>timestamp</td>
+                        <td>int</td>
+                        <td>是</td>
+                        <td>时间戳（秒），5分钟内有效</td>
+                        <td>1760622065</td>
+                    </tr>
+                    <tr>
+                        <td>sign</td>
+                        <td>string</td>
+                        <td>是</td>
+                        <td>签名，见签名规则</td>
+                        <td>9f1c...</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <p><strong>返回示例：</strong></p>
+            <pre><code>{
+  "code": 200,
+  "status": true,
+  "message": "查询成功",
+  "data": {
+    "merchant_key": "MCH_68F0E79CA6E42_20251016",
+    "order_no": "BY20251019103004C4CA9643",
+    "merchant_order_no": "DEMO_20251019103004_6039",
+    "third_party_order_no": "",
+    "trace_id": "5c4ec5f0-f018-497e-a8c8-31778a3fca89",
+    "status": 2,
+    "amount": "1.00",
+    "fee": "1.17",
+    "subject": "订单支付",
+    "created_at": "2025-10-19 10:30:04",
+    "paid_time": null,
+    "extra_data": "{\"available_channels\":[...],\"selection_strategy\":\"enterprise_validation\",\"default_channel_id\":11}"
+  }
+}</code></pre>
+            
+            <p><strong>返回字段说明：</strong></p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>字段</th>
+                        <th>类型</th>
+                        <th>说明</th>
+                        <th>示例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>code</td>
+                        <td>int</td>
+                        <td>HTTP状态码</td>
+                        <td>200</td>
+                    </tr>
+                    <tr>
+                        <td>status</td>
+                        <td>boolean</td>
+                        <td>请求是否成功</td>
+                        <td>true</td>
+                    </tr>
+                    <tr>
+                        <td>message</td>
+                        <td>string</td>
+                        <td>返回消息</td>
+                        <td>"查询成功"</td>
+                    </tr>
+                    <tr>
+                        <td>data.merchant_key</td>
+                        <td>string</td>
+                        <td>商户唯一标识</td>
+                        <td>"MCH_68F0E79CA6E42_20251016"</td>
+                    </tr>
+                    <tr>
+                        <td>data.order_no</td>
+                        <td>string</td>
+                        <td>平台订单号</td>
+                        <td>"BY20251019103004C4CA9643"</td>
+                    </tr>
+                    <tr>
+                        <td>data.merchant_order_no</td>
+                        <td>string</td>
+                        <td>商户订单号</td>
+                        <td>"DEMO_20251019103004_6039"</td>
+                    </tr>
+                    <tr>
+                        <td>data.third_party_order_no</td>
+                        <td>string</td>
+                        <td>第三方订单号</td>
+                        <td>""</td>
+                    </tr>
+                    <tr>
+                        <td>data.trace_id</td>
+                        <td>string</td>
+                        <td>追踪ID</td>
+                        <td>"5c4ec5f0-f018-497e-a8c8-31778a3fca89"</td>
+                    </tr>
+                    <tr>
+                        <td>data.status</td>
+                        <td>int</td>
+                        <td>订单状态</td>
+                        <td><span class="status-badge status-2">2</span> (支付中)</td>
+                    </tr>
+                    <tr>
+                        <td>data.amount</td>
+                        <td>string</td>
+                        <td>订单金额</td>
+                        <td>"1.00"</td>
+                    </tr>
+                    <tr>
+                        <td>data.fee</td>
+                        <td>string</td>
+                        <td>手续费</td>
+                        <td>"1.17"</td>
+                    </tr>
+                    <tr>
+                        <td>data.subject</td>
+                        <td>string</td>
+                        <td>订单标题</td>
+                        <td>"订单支付"</td>
+                    </tr>
+                    <tr>
+                        <td>data.created_at</td>
+                        <td>string</td>
+                        <td>创建时间</td>
+                        <td>"2025-10-19 10:30:04"</td>
+                    </tr>
+                    <tr>
+                        <td>data.paid_time</td>
+                        <td>string|null</td>
+                        <td>支付时间</td>
+                        <td>"2025-10-19 10:30:04" 或 null</td>
+                    </tr>
+                    <tr>
+                        <td>data.extra_data</td>
+                        <td>string</td>
+                        <td>扩展数据（JSON格式）</td>
+                        <td>"{\"user_id\":\"12345\"}"</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <hr>
+            
+            <h2>三、商户余额查询</h2>
+            <p><strong>POST</strong> <code>/api/v1/merchant/balance</code></p>
+            
+            <p><strong>请求参数（JSON）：</strong></p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>字段</th>
+                        <th>类型</th>
+                        <th>必填</th>
+                        <th>说明</th>
+                        <th>示例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>merchant_key</td>
+                        <td>string</td>
+                        <td>是</td>
+                        <td>商户唯一标识</td>
+                        <td>MCH_68F0E79CA6E42_20251016</td>
+                    </tr>
+                    <tr>
+                        <td>timestamp</td>
+                        <td>int</td>
+                        <td>是</td>
+                        <td>时间戳（秒），5分钟内有效</td>
+                        <td>1760622065</td>
+                    </tr>
+                    <tr>
+                        <td>sign</td>
+                        <td>string</td>
+                        <td>是</td>
+                        <td>签名，见签名规则</td>
+                        <td>9f1c...</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <p><strong>返回示例：</strong></p>
+            <pre><code>{
+  "code": 200,
+  "status": true,
+  "message": "查询成功",
+  "data": {
+    "merchant_key": "MCH_68F0E79CA6E42_20251016",
+    "balance": "0.00",
+    "trace_id": "c1fed143-67f4-4611-8ef4-1d2039e94eed"
+  }
+}</code></pre>
+            
+            <p><strong>返回字段说明：</strong></p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>字段</th>
+                        <th>类型</th>
+                        <th>说明</th>
+                        <th>示例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>code</td>
+                        <td>int</td>
+                        <td>HTTP状态码</td>
+                        <td>200</td>
+                    </tr>
+                    <tr>
+                        <td>status</td>
+                        <td>boolean</td>
+                        <td>请求是否成功</td>
+                        <td>true</td>
+                    </tr>
+                    <tr>
+                        <td>message</td>
+                        <td>string</td>
+                        <td>返回消息</td>
+                        <td>"查询成功"</td>
+                    </tr>
+                    <tr>
+                        <td>data.merchant_key</td>
+                        <td>string</td>
+                        <td>商户唯一标识</td>
+                        <td>"MCH_68F0E79CA6E42_20251016"</td>
+                    </tr>
+                    <tr>
+                        <td>data.balance</td>
+                        <td>string</td>
+                        <td>账户余额（元）</td>
+                        <td>"0.00"</td>
+                    </tr>
+                    <tr>
+                        <td>data.trace_id</td>
+                        <td>string</td>
+                        <td>追踪ID</td>
+                        <td>"c1fed143-67f4-4611-8ef4-1d2039e94eed"</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <hr>
+            
+            <h2>四、异步回调（服务端通知）</h2>
+            <p>当订单支付成功后，系统会向商户的 <code>notify_url</code> 以 <code>POST</code> 发送 JSON：</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>字段</th>
+                        <th>类型</th>
+                        <th>说明</th>
+                        <th>示例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>order_no</td>
+                        <td>string</td>
+                        <td>平台订单号</td>
+                        <td>BY20251016204701C4CA1207</td>
+                    </tr>
+                    <tr>
+                        <td>merchant_order_no</td>
+                        <td>string</td>
+                        <td>商户订单号</td>
+                        <td>M202510160001</td>
+                    </tr>
+                    <tr>
+                        <td>third_party_order_no</td>
+                        <td>string</td>
+                        <td>三方平台订单号</td>
+                        <td>P732025101620470175221</td>
+                    </tr>
+                    <tr>
+                        <td>amount</td>
+                        <td>string</td>
+                        <td>金额</td>
+                        <td>1.00</td>
+                    </tr>
+                    <tr>
+                        <td>status</td>
+                        <td>int</td>
+                        <td>订单状态</td>
+                        <td><span class="status-badge status-3">3</span> (支付成功)</td>
+                    </tr>
+                    <tr>
+                        <td>status_text</td>
+                        <td>string</td>
+                        <td>状态文本描述</td>
+                        <td>支付成功</td>
+                    </tr>
+                    <tr>
+                        <td>paid_time</td>
+                        <td>string</td>
+                        <td>支付时间（<code>YYYY-MM-DD HH:mm:ss</code>）</td>
+                        <td>2025-10-16 12:49:52</td>
+                    </tr>
+                    <tr>
+                        <td>extra_data</td>
+                        <td>string</td>
+                        <td>扩展数据（JSON格式）</td>
+                        <td>{"user_id": "12345", "source": "mobile_app"}</td>
+                    </tr>
+                    <tr>
+                        <td>timestamp</td>
+                        <td>int</td>
+                        <td>时间戳（秒）</td>
+                        <td>1760622065</td>
+                    </tr>
+                    <tr>
+                        <td>sign</td>
+                        <td>string</td>
+                        <td>回调签名</td>
+                        <td>9f1c...</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <p>商户接收后需返回纯文本：<code>success</code>（大小写均可）。</p>
+            <ul>
+                <li>返回非 <code>success</code>、5xx、超时等会被视为失败，系统带有重试与监控补偿。</li>
+            </ul>
+            
+            <p><strong>注意：</strong>根据策略，只有 <code>status=3(支付成功)</code> 会发送回调；已关闭等状态不回调。</p>
+            
+            <hr>
+            
+            <h2>五、签名规则</h2>
+            <p>签名与验签遵循 <code>app/common/helpers/SignatureHelper.php</code>：</p>
+            
+            <p><strong>规则摘要：</strong></p>
+            <ol>
+                <li>字段选择：如未指定参与字段列表，默认取请求参数中（去空值后）的全部字段键集合。</li>
+                <li>排序：对参与的字段名进行字典序排序；</li>
+                <li>拼接：将参与字段的"值"按排序结果顺序直接拼接为一个字符串（仅值拼接，不包含键名与连接符）；</li>
+                <li>计算：<code>md5(stringToSign + secretKey)</code> 得到签名字符串。</li>
+            </ol>
+            
+            <h3>不同接口的签名字段</h3>
+            
+            <p><strong>订单创建</strong>：使用所有字段（除排除字段外）</p>
+            <ul>
+                <li>字段：<code>merchant_key</code>, <code>merchant_order_no</code>, <code>order_amount</code>, <code>product_code</code>, <code>notify_url</code>, <code>return_url</code>, <code>terminal_ip</code>, <code>extra_data</code></li>
+            </ul>
+            
+            <p><strong>订单查询</strong>：使用特定字段（二选一）</p>
+            <ul>
+                <li>字段：<code>merchant_key</code>, <code>timestamp</code>, <code>order_no</code> 或 <code>merchant_order_no</code>（二选一）</li>
+            </ul>
+            
+            <p><strong>余额查询</strong>：使用所有字段（除排除字段外）</p>
+            <ul>
+                <li>字段：<code>merchant_key</code>, <code>timestamp</code></li>
+            </ul>
+            
+            <p><strong>伪代码：</strong></p>
+            <pre><code>private function generateSign(array $data): string
+{
+    ksort($data);
+    $signString = '';
+    foreach ($data as $key => $value) {
+        if ($value !== '' && $value !== null) {
+            $signString .= (string)$value;
+        }
+    }
+    return md5($signString . $this->merchantSecret);
+}</code></pre>
+            
+            <hr>
+            
+            <h2>六、常见问题</h2>
+            <ol>
+                <li><strong>未收到回调？</strong>
+                    <ul>
+                        <li>确认 <code>notify_url</code> 可公网访问，返回 <code>success</code>；</li>
+                        <li>检查商户服务器防火墙/证书；</li>
+                        <li>系统具备回调监控与重试，稍后会补偿发送。</li>
+                    </ul>
+                </li>
+                <li><strong>查询状态与回调状态不一致？</strong>
+                    <ul>
+                        <li>以查询结果为准；回调失败会重试，短时可能不同步。</li>
+                    </ul>
+                </li>
+                <li><strong>回调未收到？</strong>
+                    <ul>
+                        <li>请确认回调地址可公网访问并返回 <code>success</code>；系统具备重试与监控补偿能力。</li>
+                    </ul>
+                </li>
+            </ol>
+            
+            <hr>
+            
+            <h2>七、联调建议</h2>
+            <ul>
+                <li>先在测试环境完成签名联调；</li>
+                <li>使用小额订单验证 创建/查询/回调 全链路；</li>
+                <li>回调端打印并校验签名，返回 <code>success</code>；</li>
+                <li>确认异常重试策略符合预期。</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
