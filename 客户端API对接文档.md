@@ -46,14 +46,14 @@ POST `/api/v1/order/create`
 
 返回字段说明：
 
-| 字段 | 类型 | 说明 |
-| - | - | - |
-| code | int | HTTP状态码 |
-| status | boolean | 请求是否成功 |
-| message | string | 返回消息 |
-| data.order_no | string | 平台订单号 |
-| data.trace_id | string | 追踪ID |
-| data.payment_url | string | 支付链接 |
+| 字段 | 类型 | 说明 | 示例 |
+|------|------|------|------|
+| code | int | HTTP状态码 | 200 |
+| status | boolean | 请求是否成功 | true |
+| message | string | 返回消息 | "订单创建成功" |
+| data.order_no | string | 平台订单号 | "BY20251019103004C4CA9643" |
+| data.trace_id | string | 追踪ID | "3d26a574-3daf-4372-9154-5db34b38faf2" |
+| data.payment_url | string | 支付链接 | "https://mclient.alipay.lu/v1/alipay/order/payment?require_id=..." |
 
 ---
 
@@ -95,23 +95,23 @@ POST `/api/v1/order/query`
 
 返回字段说明：
 
-| 字段 | 类型 | 说明 |
-| - | - | - |
-| code | int | HTTP状态码 |
-| status | boolean | 请求是否成功 |
-| message | string | 返回消息 |
-| data.merchant_key | string | 商户唯一标识 |
-| data.order_no | string | 平台订单号 |
-| data.merchant_order_no | string | 商户订单号 |
-| data.third_party_order_no | string | 第三方订单号 |
-| data.trace_id | string | 追踪ID |
-| data.status | string | 订单状态（支付中、支付成功、已关闭等） |
-| data.amount | string | 订单金额 |
-| data.fee | string | 手续费 |
-| data.subject | string | 订单标题 |
-| data.created_at | string | 创建时间 |
-| data.paid_time | string/null | 支付时间（null表示未支付） |
-| data.extra_data | string | 扩展数据（JSON格式） |
+| 字段 | 类型 | 说明 | 示例 |
+|------|------|------|------|
+| code | int | HTTP状态码 | 200 |
+| status | boolean | 请求是否成功 | true |
+| message | string | 返回消息 | "查询成功" |
+| data.merchant_key | string | 商户唯一标识 | "MCH_68F0E79CA6E42_20251016" |
+| data.order_no | string | 平台订单号 | "BY20251019103004C4CA9643" |
+| data.merchant_order_no | string | 商户订单号 | "DEMO_20251019103004_6039" |
+| data.third_party_order_no | string | 第三方订单号 | "" |
+| data.trace_id | string | 追踪ID | "5c4ec5f0-f018-497e-a8c8-31778a3fca89" |
+| data.status | int | 订单状态 | 1=待支付, 2=支付中, 3=支付成功, 4=支付失败, 5=已退款, 6=已关闭 |
+| data.amount | string | 订单金额 | "1.00" |
+| data.fee | string | 手续费 | "1.17" |
+| data.subject | string | 订单标题 | "订单支付" |
+| data.created_at | string | 创建时间 | "2025-10-19 10:30:04" |
+| data.paid_time | string\|null | 支付时间 | "2025-10-19 10:30:04" 或 null |
+| data.extra_data | string | 扩展数据（JSON格式） | "{\"user_id\":\"12345\"}" |
 
 ---
 
@@ -142,14 +142,14 @@ POST `/api/v1/merchant/balance`
 
 返回字段说明：
 
-| 字段 | 类型 | 说明 |
-| - | - | - |
-| code | int | HTTP状态码 |
-| status | boolean | 请求是否成功 |
-| message | string | 返回消息 |
-| data.merchant_key | string | 商户唯一标识 |
-| data.balance | string | 账户余额（元） |
-| data.trace_id | string | 追踪ID |
+| 字段 | 类型 | 说明 | 示例 |
+|------|------|------|------|
+| code | int | HTTP状态码 | 200 |
+| status | boolean | 请求是否成功 | true |
+| message | string | 返回消息 | "查询成功" |
+| data.merchant_key | string | 商户唯一标识 | "MCH_68F0E79CA6E42_20251016" |
+| data.balance | string | 账户余额（元） | "0.00" |
+| data.trace_id | string | 追踪ID | "c1fed143-67f4-4611-8ef4-1d2039e94eed" |
 
 ---
 
@@ -162,8 +162,8 @@ POST `/api/v1/merchant/balance`
 | merchant_order_no | string | 商户订单号 | M202510160001 |
 | third_party_order_no | string | 三方平台订单号 | P732025101620470175221 |
 | amount | string | 金额 | 1.00 |
-| status | int | 订单状态：3=支付成功 | 3 |
-| status_text | string | 状态文本 | 支付成功 |
+| status | int | 订单状态：1=待支付, 2=支付中, 3=支付成功, 4=支付失败, 5=已退款, 6=已关闭 | 3 |
+| status_text | string | 状态文本描述 | 支付成功 |
 | paid_time | string | 支付时间（`YYYY-MM-DD HH:mm:ss`） | 2025-10-16 12:49:52 |
 | extra_data | string | 扩展数据（JSON格式） | {"user_id": "12345", "source": "mobile_app"} |
 | timestamp | int | 时间戳（秒） | 1760622065 |
