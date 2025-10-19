@@ -79,3 +79,4 @@ try {
     echo "❌ 创建表失败: " . $e->getMessage() . "\n";
     echo "错误详情: " . $e->getTraceAsString() . "\n";
 }
+

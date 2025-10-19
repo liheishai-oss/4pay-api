@@ -4,6 +4,9 @@ namespace app\api\controller\v1\callback;
 use support\Request;
 use support\Response;
 use app\model\PaymentChannel;
+use app\model\Order;
+use app\service\TraceService;
+use app\common\helpers\TraceIdHelper;
 
 /**
  * 供货商回调控制器
@@ -77,15 +80,27 @@ class SupplierCallbackController
                 if ($orderUpdated) {
                     // 记录成功日志
                     $this->logCallback('success', $payment_name, $callbackData, $result);
+                    
+                    // 记录到订单链路追踪
+                    $this->logSupplierCallbackToTrace($result, $payment_name, $callbackData, 'success');
+                    
                     return $this->callbackSuccessResponse($payment_name);
                 } else {
                     // 订单更新失败，记录日志但返回成功（避免重复回调）
                     $this->logCallback('order_update_failed', $payment_name, $callbackData, $result);
+                    
+                    // 记录到订单链路追踪
+                    $this->logSupplierCallbackToTrace($result, $payment_name, $callbackData, 'failed');
+                    
                     return $this->callbackSuccessResponse($payment_name);
                 }
             } else {
                 // 记录失败日志
                 $this->logCallback('failed', $payment_name, $callbackData, $result);
+                
+                // 记录到订单链路追踪
+                $this->logSupplierCallbackToTrace($result, $payment_name, $callbackData, 'failed');
+                
                 return $this->callbackErrorResponse($payment_name);
             }
             
@@ -161,6 +176,67 @@ class SupplierCallbackController
         return new $serviceClass($config);
     }
     
+    /**
+     * 记录供货商回调到订单链路追踪
+     * @param mixed $result 处理结果
+     * @param string $payment_name 支付服务商名称
+     * @param array $callbackData 回调数据
+     * @param string $status 状态
+     */
+    private function logSupplierCallbackToTrace($result, string $payment_name, array $callbackData, string $status): void
+    {
+        try {
+            if (!$result || !$result->getOrderNo()) {
+                return;
+            }
+
+            // 获取订单信息
+            $order = Order::where('order_no', $result->getOrderNo())->first();
+            if (!$order) {
+                return;
+            }
+
+            // 获取或创建trace_id
+            $traceId = TraceIdHelper::get();
+            
+            // 创建TraceService实例
+            $traceService = new TraceService();
+            
+            // 记录供货商回调步骤
+            $traceService->logLifecycleStep(
+                $traceId,
+                $order->id,
+                $order->merchant_id,
+                'supplier_callback',
+                $status,
+                [
+                    'payment_name' => $payment_name,
+                    'callback_data' => $callbackData,
+                    'result_status' => $result->getStatus(),
+                    'result_message' => $result->getMessage(),
+                    'order_no' => $result->getOrderNo()
+                ],
+                null,
+                0,
+                $order->order_no,
+                $order->merchant_order_no
+            );
+
+            \support\Log::info('SupplierCallbackController 已记录到订单链路追踪', [
+                'trace_id' => $traceId,
+                'order_no' => $result->getOrderNo(),
+                'status' => $status,
+                'payment_name' => $payment_name
+            ]);
+
+        } catch (\Exception $e) {
+            \support\Log::error('SupplierCallbackController 记录链路追踪失败', [
+                'error' => $e->getMessage(),
+                'order_no' => $result ? $result->getOrderNo() : 'unknown'
+            ]);
+        }
+    }
+
     /**
      * 记录回调日志
      * @param string $type

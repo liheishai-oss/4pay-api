@@ -9,6 +9,8 @@ use support\Redis;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Promise;
+use app\service\TraceService;
+use app\common\helpers\TraceIdHelper;
 
 /**
  * 商户通知服务 - 高并发版本
@@ -100,6 +102,9 @@ class MerchantNotificationService
             
             // 记录通知日志
             $notifyLog = $this->createNotifyLog($order, $notifyData);
+            
+            // 记录到订单链路追踪
+            $this->logMerchantNotificationToTrace($order, $notifyData, 'start');
             
             // 异步发送通知
             $this->sendNotificationAsync($order, $notifyData, $notifyLog);
@@ -615,6 +620,56 @@ class MerchantNotificationService
         $merchant = $order->merchant;
         $signString = $order->order_no . $order->merchant_order_no . $order->amount . $order->status . $merchant->merchant_key;
         return md5($signString);
+    }
+
+    /**
+     * 记录商户通知到订单链路追踪
+     * @param Order $order 订单对象
+     * @param array $notifyData 通知数据
+     * @param string $status 状态
+     */
+    private function logMerchantNotificationToTrace(Order $order, array $notifyData, string $status): void
+    {
+        try {
+            // 获取或创建trace_id
+            $traceId = TraceIdHelper::get();
+            
+            // 创建TraceService实例
+            $traceService = new TraceService();
+            
+            // 记录商户通知步骤
+            $traceService->logLifecycleStep(
+                $traceId,
+                $order->id,
+                $order->merchant_id,
+                'merchant_notification',
+                $status,
+                [
+                    'notify_url' => $order->notify_url,
+                    'notify_data' => $notifyData,
+                    'order_status' => $order->status,
+                    'order_no' => $order->order_no,
+                    'merchant_order_no' => $order->merchant_order_no
+                ],
+                null,
+                0,
+                $order->order_no,
+                $order->merchant_order_no
+            );
+
+            Log::info('MerchantNotificationService 已记录到订单链路追踪', [
+                'trace_id' => $traceId,
+                'order_no' => $order->order_no,
+                'status' => $status,
+                'notify_url' => $order->notify_url
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('MerchantNotificationService 记录链路追踪失败', [
+                'error' => $e->getMessage(),
+                'order_no' => $order->order_no
+            ]);
+        }
     }
 
     /**

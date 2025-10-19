@@ -56,3 +56,4 @@ CREATE TABLE order_query_traces (
     INDEX idx_merchant_trace (merchant_id, trace_id),
     INDEX idx_query_trace (query_type, trace_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单查询追踪表';
+
