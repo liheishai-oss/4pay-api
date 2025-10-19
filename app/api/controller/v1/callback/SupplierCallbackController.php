@@ -177,6 +177,59 @@ class SupplierCallbackController
     }
     
     /**
+     * 记录订单状态更新到链路追踪
+     * @param \app\model\Order $order 订单对象
+     * @param int $oldStatus 旧状态
+     * @param \app\service\thirdparty_payment\PaymentResult $result 支付结果
+     * @param string $paymentName 支付服务商名称
+     */
+    private function logOrderStatusUpdateToTrace(\app\model\Order $order, int $oldStatus, \app\service\thirdparty_payment\PaymentResult $result, string $paymentName): void
+    {
+        try {
+            // 获取或创建trace_id
+            $traceId = \app\common\helpers\TraceIdHelper::get();
+            
+            // 创建TraceService实例
+            $traceService = new \app\service\TraceService();
+            
+            // 记录订单状态更新步骤
+            $traceService->logLifecycleStep(
+                $traceId,
+                $order->id,
+                $order->merchant_id,
+                'order_status_updated',
+                'success',
+                [
+                    'old_status' => $oldStatus,
+                    'new_status' => $order->status,
+                    'payment_name' => $paymentName,
+                    'transaction_id' => $result->getTransactionId(),
+                    'paid_time' => $order->paid_time,
+                    'update_time' => date('Y-m-d H:i:s')
+                ],
+                null,
+                0,
+                $order->order_no,
+                $order->merchant_order_no
+            );
+
+            \support\Log::info('SupplierCallbackController 订单状态更新已记录到链路追踪', [
+                'trace_id' => $traceId,
+                'order_no' => $order->order_no,
+                'old_status' => $oldStatus,
+                'new_status' => $order->status,
+                'payment_name' => $paymentName
+            ]);
+
+        } catch (\Exception $e) {
+            \support\Log::error('SupplierCallbackController 记录订单状态更新链路追踪失败', [
+                'order_no' => $order->order_no,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * 记录供货商回调到订单链路追踪
      * @param mixed $result 处理结果
      * @param string $payment_name 支付服务商名称
@@ -530,6 +583,9 @@ class SupplierCallbackController
                 return true; // 返回true避免重复回调
             }
             
+            // 记录旧状态用于链路追踪
+            $oldStatus = $order->status;
+            
             // 更新订单状态
             $order->status = 3; // 3=支付成功
             $order->paid_time = date('Y-m-d H:i:s');
@@ -539,11 +595,14 @@ class SupplierCallbackController
             
             \support\Log::info('SupplierCallbackController 订单状态更新成功', [
                 'order_no' => $orderNo,
-                'old_status' => $order->getOriginal('status'),
+                'old_status' => $oldStatus,
                 'new_status' => $order->status,
                 'transaction_id' => $result->getTransactionId(),
                 'payment_name' => $paymentName
             ]);
+            
+            // 记录订单状态更新到链路追踪
+            $this->logOrderStatusUpdateToTrace($order, $oldStatus, $result, $paymentName);
             
             // 触发商户通知
             $this->triggerMerchantNotification($order, $paymentName);
