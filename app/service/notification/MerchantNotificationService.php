@@ -169,7 +169,7 @@ class MerchantNotificationService
         return [
             'order_no' => $order->order_no,
             'merchant_order_no' => $order->merchant_order_no,
-            'amount' => number_format($order->amount, 2, '.', ''), // 确保金额格式为元，保留2位小数
+            'amount' => number_format($order->amount / 100, 2, '.', ''), // 将分转换为元，保留2位小数
             'status' => $order->status,
             'status_text' => $this->getStatusText($order->status),
             'paid_time' => $this->formatDateTime($order->paid_time), // 格式化时间
@@ -680,7 +680,7 @@ class MerchantNotificationService
         $signData = [
             'order_no' => $order->order_no,
             'merchant_order_no' => $order->merchant_order_no,
-            'amount' => number_format($order->amount, 2, '.', ''),
+            'amount' => number_format($order->amount / 100, 2, '.', ''),
             'status' => $order->status,
             'status_text' => $this->getStatusText($order->status),
             'paid_time' => $this->formatDateTime($order->paid_time),
