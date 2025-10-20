@@ -34,7 +34,6 @@ class Order extends Model
         'expire_time',
         'paid_time'
     ];
-
     protected $casts = [
         'extra_data' => 'array',
         'third_party_response' => 'array',
@@ -44,7 +43,9 @@ class Order extends Model
         'fee' => 'integer',
         'notify_count' => 'integer',
         'notify_status' => 'integer',
-        'status' => 'integer'
+        'status' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
     ];
 
     /**
