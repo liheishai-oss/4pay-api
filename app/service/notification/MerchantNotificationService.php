@@ -163,17 +163,20 @@ class MerchantNotificationService
      */
     private function buildNotifyData(Order $order, array $callbackData = []): array
     {
+        // 从callbackData中获取extra_data，如果没有则使用订单中的extra_data
+        $extraData = $callbackData['extra_data'] ?? $order->extra_data ?? '{}';
+        
         return [
             'order_no' => $order->order_no,
             'merchant_order_no' => $order->merchant_order_no,
             'amount' => number_format($order->amount, 2, '.', ''), // 确保金额格式为元，保留2位小数
             'status' => $order->status,
             'status_text' => $this->getStatusText($order->status),
-            'paid_time' => $order->paid_time,
-            'created_at' => $order->created_at,
-            'extra_data' => $order->extra_data ?: '{}', // 扩展数据，JSON格式
+            'paid_time' => $this->formatDateTime($order->paid_time),
+            'created_at' => $this->formatDateTime($order->created_at),
+            'extra_data' => $extraData, // 扩展数据，JSON格式
             'timestamp' => time(),
-            'sign' => $this->generateSign($order)
+            'sign' => $this->generateSign($order, $extraData)
         ];
     }
 
@@ -643,11 +646,32 @@ class MerchantNotificationService
     }
 
     /**
-     * 生成签名
-     * @param Order $order
+     * 格式化日期时间
+     * @param string|null $datetime
      * @return string
      */
-    private function generateSign(Order $order): string
+    private function formatDateTime(?string $datetime): string
+    {
+        if (empty($datetime)) {
+            return '';
+        }
+        
+        // 如果是ISO格式，转换为标准格式
+        if (strpos($datetime, 'T') !== false) {
+            $date = new \DateTime($datetime);
+            return $date->format('Y-m-d H:i:s');
+        }
+        
+        return $datetime;
+    }
+
+    /**
+     * 生成签名
+     * @param Order $order
+     * @param string $extraData
+     * @return string
+     */
+    private function generateSign(Order $order, string $extraData = '{}'): string
     {
         $merchant = $order->merchant;
         // 构建签名数据，不包含third_party_order_no字段
@@ -657,9 +681,9 @@ class MerchantNotificationService
             'amount' => number_format($order->amount, 2, '.', ''),
             'status' => $order->status,
             'status_text' => $this->getStatusText($order->status),
-            'paid_time' => $order->paid_time,
-            'created_at' => $order->created_at,
-            'extra_data' => $order->extra_data ?: '{}',
+            'paid_time' => $this->formatDateTime($order->paid_time),
+            'created_at' => $this->formatDateTime($order->created_at),
+            'extra_data' => $extraData,
             'timestamp' => time()
         ];
         
