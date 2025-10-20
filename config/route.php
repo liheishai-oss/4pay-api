@@ -85,7 +85,6 @@ Route::group('/api/v1/admin', function() {
 
     // 系统菜单
     Route::add(['GET', 'OPTIONS'],'/menu', [app\admin\controller\v1\AdminController::class, 'menu']);
-    Route::add(['POST', 'OPTIONS'],'/menu/clear-cache', [app\admin\controller\v1\AdminController::class, 'clearMenuCache']);
     Route::group('/user', function () {
         Route::add(['GET', 'OPTIONS'], '/info', [app\admin\controller\v1\AdminController::class, 'info']);
         Route::add(['GET', 'OPTIONS'],'/index', [app\admin\controller\v1\AdminController::class, 'index']);

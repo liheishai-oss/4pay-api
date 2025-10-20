@@ -73,40 +73,15 @@ class AdminController
             if (!$userId || !$groupId) {
                 return error('用户信息不完整', 401);
             }
-            
-            // 使用用户ID和组ID组合作为缓存key，确保不同用户有不同的缓存
-            $key = common::REDIS_KEY_MENU_PREFIX.$userId.'_'.$groupId;
-            
-            // 检查是否需要强制刷新缓存
-            $forceRefresh = $request->get('force_refresh', false);
-            
-            try{
-                if (!$forceRefresh) {
-                    $menus = Redis::get($key);
-                    if($menus){
-                        return success(json_decode($menus, true));
-                    }
-                }
-            } catch (\Throwable $e) {
-                Log::error('redis异常',[
-                    'message' => $e->getMessage(),
-                    'file'    => $e->getFile(),
-                    'line'    => $e->getLine(),
-                    'trace'   => $e->getTraceAsString(),
-                ]);
-            }
 
+            // 直接从数据库获取菜单数据，不使用缓存
             $baseQuery = AdminRule::where([
                 'is_menu' => 1,
                 'status'  => 1
             ])->select(['id', 'title', 'icon', 'path', 'parent_id']);
+            
             if ($userId != Common::ADMIN_USER_ID) {
-
-                // $ruleIds = PermissionGroup::where('permission_group_id', $groupId)
-                //     ->pluck('permission_id')->toArray();
-
-                // $baseQuery->whereIn('id', $ruleIds);
-                 // 获取分组权限id
+                // 获取分组权限id
                 $ruleIds = PermissionGroup::where('permission_group_id', $groupId)
                     ->pluck('permission_id')->toArray();
 
@@ -117,21 +92,9 @@ class AdminController
             }
 
             $menus = $baseQuery->orderBy('weight', 'desc')->get()->toArray();
-
             $tree = $this->buildMenuTree($menus);
-            try{
-                Redis::setEx($key, OrderConfig::ADMIN_MENU_CACHE_TTL, json_encode($tree,JSON_UNESCAPED_UNICODE));
-            } catch (\Throwable $e) {
-                Log::error('redis异常',[
-                    'message' => $e->getMessage(),
-                    'file'    => $e->getFile(),
-                    'line'    => $e->getLine(),
-                    'trace'   => $e->getTraceAsString(),
-                ]);
-            }
 
             return success($tree);
-
     }
 private function getRuleWithParents(array $ruleIds): array
 {
@@ -290,38 +253,6 @@ private function getRuleWithParents(array $ruleIds): array
             return success($userData);
     }
 
-    /**
-     * 清除菜单缓存
-     */
-    public function clearMenuCache(Request $request): Response
-    {
-        try {
-            $userId = $request->userData['admin_id'] ?? null;
-            $groupId = $request->userData['user_group_id'] ?? null;
-            
-            if (!$userId || !$groupId) {
-                return error('用户信息不完整', 401);
-            }
-            
-            // 清除当前用户的菜单缓存
-            $key = common::REDIS_KEY_MENU_PREFIX.$userId.'_'.$groupId;
-            Redis::del($key);
-            
-            // 也清除旧的缓存格式（兼容性）
-            $oldKey = common::REDIS_KEY_MENU_PREFIX.$groupId;
-            Redis::del($oldKey);
-            
-            return success([], '菜单缓存已清除');
-        } catch (\Throwable $e) {
-            Log::error('清除菜单缓存失败', [
-                'message' => $e->getMessage(),
-                'file'    => $e->getFile(),
-                'line'    => $e->getLine(),
-                'trace'   => $e->getTraceAsString(),
-            ]);
-            return error('清除缓存失败：' . $e->getMessage());
-        }
-    }
 
 }
 

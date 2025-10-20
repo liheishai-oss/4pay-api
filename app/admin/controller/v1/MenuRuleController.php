@@ -209,14 +209,11 @@ class MenuRuleController
             throw new MyBusinessException('未指定要删除的投诉ID');
         }
 
-
         try {
-
             AdminRule::whereIn('id', $idsString)->delete();
 
             return success([], '删除成功');
         } catch (Throwable $e) {
-
             throw new MyBusinessException('删除失败：' . $e->getMessage());
         }
     }
