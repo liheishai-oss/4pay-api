@@ -600,13 +600,22 @@ class OrderTimeoutCheckProcess
     private function getOrderValidityMinutes(): int
     {
         try {
+            // 检查数据库连接
+            if (!\support\Db::connection()->getPdo()) {
+                Log::warning('数据库连接不可用，使用默认订单有效期', [
+                    'default_minutes' => 30
+                ]);
+                return 30;
+            }
+            
             $config = SystemConfig::where('config_key', 'payment.order_validity_minutes')->first();
-            if ($config) {
+            if ($config && $config->config_value) {
                 return (int)$config->config_value;
             }
         } catch (\Exception $e) {
             Log::warning('获取订单有效期配置失败，使用默认值', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
         
@@ -621,13 +630,22 @@ class OrderTimeoutCheckProcess
     private function getForceTimeoutMinutes(): int
     {
         try {
+            // 检查数据库连接
+            if (!\support\Db::connection()->getPdo()) {
+                Log::warning('数据库连接不可用，使用默认强制超时时间', [
+                    'default_minutes' => 30
+                ]);
+                return 30;
+            }
+            
             $config = SystemConfig::where('config_key', 'payment.force_timeout_minutes')->first();
-            if ($config) {
+            if ($config && $config->config_value) {
                 return (int)$config->config_value;
             }
         } catch (\Exception $e) {
             Log::warning('获取强制超时配置失败，使用默认值', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
         

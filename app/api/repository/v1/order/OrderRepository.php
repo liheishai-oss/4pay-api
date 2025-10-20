@@ -29,7 +29,16 @@ class OrderRepository
      */
     public function getOrderByOrderNo(string $orderNo): ?Order
     {
-        return Order::where('order_no', $orderNo)->first();
+        try {
+            return Order::where('order_no', $orderNo)->first();
+        } catch (\Exception $e) {
+            Log::error('查询订单失败 - getOrderByOrderNo', [
+                'order_no' => $orderNo,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return null;
+        }
     }
 
     /**
@@ -39,7 +48,16 @@ class OrderRepository
      */
     public function getOrderByMerchantOrderNo(string $merchantOrderNo): ?Order
     {
-        return Order::where('merchant_order_no', $merchantOrderNo)->first();
+        try {
+            return Order::where('merchant_order_no', $merchantOrderNo)->first();
+        } catch (\Exception $e) {
+            Log::error('查询订单失败 - getOrderByMerchantOrderNo', [
+                'merchant_order_no' => $merchantOrderNo,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return null;
+        }
     }
 
     /**
@@ -59,7 +77,16 @@ class OrderRepository
      */
     public function getMerchantByKey(string $merchantKey): ?Merchant
     {
-        return Merchant::where('merchant_key', $merchantKey)->where('status',MerchantStatus::ENABLED)->first();
+        try {
+            return Merchant::where('merchant_key', $merchantKey)->where('status',MerchantStatus::ENABLED)->first();
+        } catch (\Exception $e) {
+            Log::error('查询商户失败 - getMerchantByKey', [
+                'merchant_key' => $merchantKey,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return null;
+        }
     }
 
     /**

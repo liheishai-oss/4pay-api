@@ -623,22 +623,6 @@ class OrderManagementService
         return $statusMap[$paymentStatus] ?? null;
     }
 
-    /**
-     * 获取状态文本
-     */
-    private function getStatusText($status)
-    {
-        $statusMap = [
-            OrderStatus::PENDING => '待支付',
-            OrderStatus::PAYING => '支付中',
-            OrderStatus::SUCCESS => '支付成功',
-            OrderStatus::FAILED => '支付失败',
-            OrderStatus::REFUNDED => '已退款',
-            OrderStatus::CLOSED => '已关闭'
-        ];
-
-        return $statusMap[$status] ?? '未知状态';
-    }
 
     /**
      * 验证状态转换
