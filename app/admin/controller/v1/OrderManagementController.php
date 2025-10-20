@@ -35,19 +35,19 @@ class OrderManagementController
                 $searchParams = $searchParams['search'];
             }
             
-            // 商户管理员权限控制：只能看到自己的订单
-            if (isset($request->userData) && !empty($request->userData['is_merchant_admin']) && $request->userData['is_merchant_admin']) {
-                $adminId = $request->userData['admin_id'] ?? null;
-                if ($adminId) {
-                    $merchantId = \app\model\Merchant::where('admin_id', $adminId)->value('id');
-                    if (!empty($merchantId)) {
-                        // 强制设置商户ID，确保商户管理员只能看到自己的订单
-                        $searchParams['merchant_id'] = $merchantId;
-                        \support\Log::info('商户管理员订单查询', [
-                            'admin_id' => $adminId,
-                            'merchant_id' => $merchantId
-                        ]);
-                    }
+            // 非管理员用户权限控制：只能看到自己的订单
+            $adminId = $request->userData['admin_id'] ?? null;
+            if ($adminId && $adminId != \app\common::ADMIN_USER_ID) {
+                // 非超级管理员，需要限制只能看到自己的订单
+                $merchantId = \app\model\Merchant::where('admin_id', $adminId)->value('id');
+                if (!empty($merchantId)) {
+                    // 强制设置商户ID，确保非管理员用户只能看到自己的订单
+                    $searchParams['merchant_id'] = $merchantId;
+                    \support\Log::info('非管理员用户订单查询', [
+                        'admin_id' => $adminId,
+                        'merchant_id' => $merchantId,
+                        'is_merchant_admin' => $request->userData['is_merchant_admin'] ?? false
+                    ]);
                 }
             }
             
@@ -204,6 +204,22 @@ class OrderManagementController
                 $jsonParams = json_decode($search, true);
                 if ($jsonParams && is_array($jsonParams)) {
                     $searchParams = array_merge($searchParams, $jsonParams);
+                }
+            }
+            
+            // 非管理员用户权限控制：统计也只能看到自己的订单
+            $adminId = $request->userData['admin_id'] ?? null;
+            if ($adminId && $adminId != \app\common::ADMIN_USER_ID) {
+                // 非超级管理员，需要限制只能统计自己的订单
+                $merchantId = \app\model\Merchant::where('admin_id', $adminId)->value('id');
+                if (!empty($merchantId)) {
+                    // 强制设置商户ID，确保非管理员用户只能统计自己的订单
+                    $searchParams['merchant_id'] = $merchantId;
+                    \support\Log::info('非管理员用户订单统计', [
+                        'admin_id' => $adminId,
+                        'merchant_id' => $merchantId,
+                        'is_merchant_admin' => $request->userData['is_merchant_admin'] ?? false
+                    ]);
                 }
             }
             
