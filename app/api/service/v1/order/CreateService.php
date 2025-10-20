@@ -733,31 +733,31 @@ class CreateService
     }
 
     /**
-     * 构建扩展数据
+     * 构建扩展数据 - 只返回商户传递的原始数据
      * @param array $data 用户传入数据
-     * @param array $channels 可用通道列表
-     * @param array $primaryChannel 主通道
+     * @param array $channels 可用通道列表（不再使用）
+     * @param array $primaryChannel 主通道（不再使用）
      * @return string JSON格式的扩展数据
      */
     private function buildExtraData(array $data, array $channels, array $primaryChannel): string
     {
-        // 用户扩展数据原样存储
+        // 只返回商户传递的原始扩展数据，不添加任何系统数据
         $userExtraData = $data['extra_data'] ?? '';
         
-        // 系统扩展数据单独存储到extra_data字段
-        $systemExtraData = [
-            'available_channels' => $channels, // 保存所有可用通道信息
-            'selection_strategy' => 'enterprise_validation',
-            'default_channel_id' => $primaryChannel['id'] // 记录默认通道ID
-        ];
-
-        // 如果用户有扩展数据，合并到系统数据中
-        if (!empty($userExtraData)) {
-            $userData = json_decode($userExtraData, true) ?? [];
-            $systemExtraData = array_merge($systemExtraData, $userData);
+        // 如果用户没有传递扩展数据，返回空JSON对象
+        if (empty($userExtraData)) {
+            return '{}';
         }
-
-        return json_encode($systemExtraData);
+        
+        // 验证是否为有效的JSON格式
+        $decoded = json_decode($userExtraData, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            // 如果不是有效JSON，返回空对象
+            return '{}';
+        }
+        
+        // 返回用户原始数据
+        return $userExtraData;
     }
 
 }
