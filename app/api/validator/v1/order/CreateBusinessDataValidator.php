@@ -100,12 +100,6 @@ class CreateBusinessDataValidator
         }
 
         // 验证签名（debug模式下跳过）
-        \support\Log::info('签名验证调试', [
-            'has_debug' => isset($data['debug']),
-            'debug_value' => $data['debug'] ?? 'NOT_SET',
-            'data_keys' => array_keys($data)
-        ]);
-        
         if (!isset($data['debug']) || $data['debug'] != '1') {
             $signatureHelper = new SignatureHelper();
             // 创建用于签名验证的数据副本，排除系统自动添加的字段
