@@ -172,11 +172,10 @@ class MerchantNotificationService
             'amount' => number_format($order->amount, 2, '.', ''), // 确保金额格式为元，保留2位小数
             'status' => $order->status,
             'status_text' => $this->getStatusText($order->status),
-            'paid_time' => $order->paid_time ?: '', // Order模型已处理时间格式
-            'created_at' => $order->created_at ?: '', // Order模型已处理时间格式
-            'extra_data' => $extraData, // 扩展数据，JSON格式
+            'paid_time' => $this->formatDateTime($order->paid_time), // 格式化时间
+            'created_at' => $this->formatDateTime($order->created_at), // 格式化时间
             'timestamp' => time(),
-            'sign' => $this->generateSign($order, $extraData)
+            'sign' => $this->generateSign($order)
         ];
     }
 
@@ -645,26 +644,47 @@ class MerchantNotificationService
         ]);
     }
 
+    /**
+     * 格式化日期时间 - 将ISO格式转换为标准格式
+     * @param string|null $datetime
+     * @return string
+     */
+    private function formatDateTime(?string $datetime): string
+    {
+        if (empty($datetime)) {
+            return '';
+        }
+        
+        // 如果是ISO格式，转换为标准格式
+        if (strpos($datetime, 'T') !== false) {
+            try {
+                $date = new \DateTime($datetime);
+                return $date->format('Y-m-d H:i:s');
+            } catch (\Exception $e) {
+                return '';
+            }
+        }
+        
+        return $datetime;
+    }
 
     /**
      * 生成签名
      * @param Order $order
-     * @param string $extraData
      * @return string
      */
-    private function generateSign(Order $order, string $extraData = '{}'): string
+    private function generateSign(Order $order): string
     {
         $merchant = $order->merchant;
-        // 构建签名数据，不包含third_party_order_no字段
+        // 构建签名数据，不包含third_party_order_no和extra_data字段
         $signData = [
             'order_no' => $order->order_no,
             'merchant_order_no' => $order->merchant_order_no,
             'amount' => number_format($order->amount, 2, '.', ''),
             'status' => $order->status,
             'status_text' => $this->getStatusText($order->status),
-            'paid_time' => $order->paid_time ?: '',
-            'created_at' => $order->created_at ?: '',
-            'extra_data' => $extraData,
+            'paid_time' => $this->formatDateTime($order->paid_time),
+            'created_at' => $this->formatDateTime($order->created_at),
             'timestamp' => time()
         ];
         
