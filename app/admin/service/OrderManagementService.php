@@ -667,7 +667,7 @@ class OrderManagementService
         return [
             'order_no' => $order->order_no,
             'merchant_order_no' => $order->merchant_order_no,
-            'amount' => number_format($order->amount / 100, 2, '.', ''), // 将分转换为元，保留2位小数
+            'amount' => \app\common\helpers\MoneyHelper::convertToYuan($order->amount), // 将分转换为元，保留2位小数
             'status' => $order->status,
             'status_text' => $this->getStatusText($order->status),
             'paid_time' => $this->formatDateTime($order->paid_time),
@@ -771,7 +771,7 @@ class OrderManagementService
         return [
             'order_no' => $order->order_no,
             'merchant_order_no' => $order->merchant_order_no,
-            'amount' => number_format($order->amount / 100, 2, '.', ''),
+            'amount' => \app\common\helpers\MoneyHelper::convertToYuan($order->amount),
             'status' => $order->status,
             'status_text' => $this->getStatusText($order->status),
             'paid_time' => $this->formatDateTime($order->paid_time),
