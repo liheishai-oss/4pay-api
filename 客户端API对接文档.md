@@ -97,7 +97,7 @@ POST `/api/v1/order/query`
     "subject": "订单支付",
     "created_at": "2025-10-19 10:30:04",
     "paid_time": null,
-    "extra_data": "{\"available_channels\":[...],\"selection_strategy\":\"enterprise_validation\",\"default_channel_id\":11}"
+    "extra_data": "{\"user_id\": \"12345\", \"source\": \"mobile_app\"}"
   }
 }
 ```
