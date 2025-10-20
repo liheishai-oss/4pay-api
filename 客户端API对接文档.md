@@ -168,11 +168,11 @@ POST `/api/v1/merchant/balance`
 | - | - | - | - |
 | order_no | string | 平台订单号 | BY20251016204701C4CA1207 |
 | merchant_order_no | string | 商户订单号 | M202510160001 |
-| third_party_order_no | string | 三方平台订单号 | P732025101620470175221 |
-| amount | string | 金额 | 1.00 |
+| amount | string | 金额（元，保留2位小数） | 1.00 |
 | status | int | 订单状态：1=待支付, 2=支付中, 3=支付成功, 4=支付失败, 5=已退款, 6=已关闭 | 3 |
 | status_text | string | 状态文本描述 | 支付成功 |
 | paid_time | string | 支付时间（`YYYY-MM-DD HH:mm:ss`） | 2025-10-16 12:49:52 |
+| created_at | string | 订单创建时间（`YYYY-MM-DD HH:mm:ss`） | 2025-10-16 12:45:30 |
 | extra_data | string | 扩展数据（JSON格式） | {"user_id": "12345", "source": "mobile_app"} |
 | timestamp | int | 时间戳（秒） | 1760622065 |
 | sign | string | 回调签名 | 9f1c... |
@@ -185,7 +185,6 @@ POST `/api/v1/merchant/balance`
 ---
 
 ## 五、签名规则
-签名与验签遵循 `app/common/helpers/SignatureHelper.php`：
 
 规则摘要：
 1. 字段选择：如未指定参与字段列表，默认取请求参数中（去空值后）的全部字段键集合。

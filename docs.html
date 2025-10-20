@@ -725,15 +725,9 @@
                         <td>M202510160001</td>
                     </tr>
                     <tr>
-                        <td>third_party_order_no</td>
-                        <td>string</td>
-                        <td>三方平台订单号</td>
-                        <td>P732025101620470175221</td>
-                    </tr>
-                    <tr>
                         <td>amount</td>
                         <td>string</td>
-                        <td>金额</td>
+                        <td>金额（元，保留2位小数）</td>
                         <td>1.00</td>
                     </tr>
                     <tr>
@@ -753,6 +747,12 @@
                         <td>string</td>
                         <td>支付时间（<code>YYYY-MM-DD HH:mm:ss</code>）</td>
                         <td>2025-10-16 12:49:52</td>
+                    </tr>
+                    <tr>
+                        <td>created_at</td>
+                        <td>string</td>
+                        <td>订单创建时间（<code>YYYY-MM-DD HH:mm:ss</code>）</td>
+                        <td>2025-10-16 12:45:30</td>
                     </tr>
                     <tr>
                         <td>extra_data</td>
@@ -785,7 +785,6 @@
             <hr>
             
             <h2>五、签名规则</h2>
-            <p>签名与验签遵循 <code>app/common/helpers/SignatureHelper.php</code>：</p>
             
             <p><strong>规则摘要：</strong></p>
             <ol>
