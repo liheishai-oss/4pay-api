@@ -92,29 +92,11 @@ class AdminController
             
             if ($userId == Common::ADMIN_USER_ID) {
                 Log::info('超级管理员，获取所有菜单');
-            } elseif ($isMerchantAdmin) {
-                // 商户管理员：只获取商户相关的菜单
-                Log::info('商户管理员，获取商户相关菜单');
-                
-                // 商户管理员只能看到商户相关的菜单，比如：
-                // - 商户管理（自己的商户信息）
-                // - 订单管理（自己的订单）
-                // - 财务相关（自己的财务信息）
-                $merchantMenuPaths = [
-                    '/merchant/home',           // 商户管理
-                    '/order/home',              // 订单管理
-                    '/finance/home',            // 财务管理
-                    '/dashboard/home'           // 仪表盘
-                ];
-                
-                $baseQuery->whereIn('path', $merchantMenuPaths);
-                
-                Log::info('商户管理员菜单路径', [
-                    'merchant_menu_paths' => $merchantMenuPaths
-                ]);
             } else {
-                // 普通管理员：根据用户组权限获取菜单
-                Log::info('普通管理员，根据用户组权限获取菜单');
+                // 所有非超级管理员（包括商户管理员）都根据用户组权限获取菜单
+                Log::info('根据用户组权限获取菜单', [
+                    'user_type' => $isMerchantAdmin ? 'merchant_admin' : 'normal_admin'
+                ]);
                 
                 // 获取分组权限id
                 $ruleIds = PermissionGroup::where('permission_group_id', $groupId)
