@@ -172,9 +172,8 @@ class MerchantNotificationService
             'paid_time' => $order->paid_time,
             'created_at' => $order->created_at,
             'extra_data' => $order->extra_data ?: '{}', // 扩展数据，JSON格式
-            'sign' => $this->generateSign($order),
             'timestamp' => time(),
-            'callback_data' => $callbackData
+            'sign' => $this->generateSign($order)
         ];
     }
 
@@ -664,8 +663,27 @@ class MerchantNotificationService
             'timestamp' => time()
         ];
         
-        // 使用SignatureHelper生成签名
-        return \app\common\helpers\SignatureHelper::generate($signData, $merchant->merchant_key);
+        // 按文档规则生成签名：排除sign字段，按字段名排序，拼接值，最后加密钥
+        $excludeFields = ['sign', 'client_ip', 'entities_id'];
+        $filteredData = [];
+        
+        foreach ($signData as $key => $value) {
+            if (!in_array($key, $excludeFields)) {
+                $filteredData[$key] = $value;
+            }
+        }
+        
+        // 按字段名排序
+        ksort($filteredData);
+        
+        // 拼接所有字段值
+        $stringToSign = '';
+        foreach ($filteredData as $value) {
+            $stringToSign .= (string)$value;
+        }
+        
+        // 生成签名：md5(stringToSign + secretKey)
+        return md5($stringToSign . $merchant->merchant_key);
     }
 
     /**
