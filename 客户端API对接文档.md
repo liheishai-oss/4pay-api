@@ -173,7 +173,6 @@ POST `/api/v1/merchant/balance`
 | status_text | string | 状态文本描述 | 支付成功 |
 | paid_time | string | 支付时间（`YYYY-MM-DD HH:mm:ss`） | 2025-10-16 12:49:52 |
 | created_at | string | 订单创建时间（`YYYY-MM-DD HH:mm:ss`） | 2025-10-16 12:45:30 |
-| extra_data | string | 扩展数据（JSON格式） | {"user_id": "12345", "source": "mobile_app"} |
 | timestamp | int | 时间戳（秒） | 1760622065 |
 | sign | string | 回调签名 | 9f1c... |
 
