@@ -673,7 +673,7 @@ class OrderManagementService
             'paid_time' => $this->formatDateTime($order->paid_time),
             'created_at' => $this->formatDateTime($order->created_at),
             'timestamp' => time(),
-            'sign' => $this->generateSign($order)
+            'sign' => \app\common\helpers\SignatureHelper::generate($this->buildSignData($order), $order->merchant->merchant_key)
         ];
     }
 
@@ -764,12 +764,11 @@ class OrderManagementService
     }
 
     /**
-     * 生成签名 - 与MerchantNotificationService保持一致
+     * 构建签名数据 - 与MerchantNotificationService保持一致
      */
-    private function generateSign($order)
+    private function buildSignData($order)
     {
-        $merchant = $order->merchant;
-        $signData = [
+        return [
             'order_no' => $order->order_no,
             'merchant_order_no' => $order->merchant_order_no,
             'amount' => number_format($order->amount / 100, 2, '.', ''),
@@ -779,24 +778,6 @@ class OrderManagementService
             'created_at' => $this->formatDateTime($order->created_at),
             'timestamp' => time()
         ];
-        
-        $excludeFields = ['sign', 'client_ip', 'entities_id'];
-        $filteredData = [];
-        
-        foreach ($signData as $key => $value) {
-            if (!in_array($key, $excludeFields)) {
-                $filteredData[$key] = $value;
-            }
-        }
-        
-        ksort($filteredData);
-        
-        $stringToSign = '';
-        foreach ($filteredData as $value) {
-            $stringToSign .= (string)$value;
-        }
-        
-        return md5($stringToSign . $merchant->merchant_key);
     }
 
     /**
