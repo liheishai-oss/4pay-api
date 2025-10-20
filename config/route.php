@@ -378,5 +378,5 @@ Route::group('/api/v1', function () {
 
 
 })->middleware([
-    app\middleware\SignatureMiddleware::class, app\middleware\IpWhitelistMiddleware::class, app\middleware\AntiReplayMiddleware::class
+    app\middleware\IpWhitelistMiddleware::class, app\middleware\AntiReplayMiddleware::class
 ]);

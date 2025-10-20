@@ -62,7 +62,7 @@ class QueryService
             'merchant_key'         => $merchant->merchant_key,
             'order_no'             => $order->order_no,
             'merchant_order_no'    => $order->merchant_order_no,
-            'third_party_order_no' => $order->third_party_order_no,
+//            'third_party_order_no' => $order->third_party_order_no,
             'trace_id'             => TraceIdHelper::get(),
             'status'               => $order->status,
             'amount'               => MoneyHelper::convertToYuan($order->amount),
