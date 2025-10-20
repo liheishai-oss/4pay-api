@@ -73,57 +73,66 @@ class AdminController
             if (!$userId || !$groupId) {
                 return error('用户信息不完整', 401);
             }
-            $key = common::REDIS_KEY_MENU_PREFIX.$groupId;
-            try{
-                $menus = Redis::get($key);
-                if($menus){
-//                    return success(json_decode($menus, true));
-                }
-            } catch (\Throwable $e) {
-                Log::error('redis异常',[
-                    'message' => $e->getMessage(),
-                    'file'    => $e->getFile(),
-                    'line'    => $e->getLine(),
-                    'trace'   => $e->getTraceAsString(),
-                ]);
-            }
 
+            // 检查是否为商户管理员
+            $isMerchantAdmin = \app\model\Merchant::where('admin_id', $userId)->exists();
+            
+            Log::info('获取菜单数据', [
+                'user_id' => $userId,
+                'group_id' => $groupId,
+                'is_super_admin' => $userId == Common::ADMIN_USER_ID,
+                'is_merchant_admin' => $isMerchantAdmin
+            ]);
+
+            // 直接从数据库获取菜单数据，不使用缓存
             $baseQuery = AdminRule::where([
                 'is_menu' => 1,
                 'status'  => 1
             ])->select(['id', 'title', 'icon', 'path', 'parent_id']);
-            if ($userId != Common::ADMIN_USER_ID) {
-
-                // $ruleIds = PermissionGroup::where('permission_group_id', $groupId)
-                //     ->pluck('permission_id')->toArray();
-
-                // $baseQuery->whereIn('id', $ruleIds);
-                 // 获取分组权限id
+            
+            if ($userId == Common::ADMIN_USER_ID) {
+                Log::info('超级管理员，获取所有菜单');
+            } else {
+                // 所有非超级管理员（包括商户管理员）都根据用户组权限获取菜单
+                Log::info('根据用户组权限获取菜单', [
+                    'user_type' => $isMerchantAdmin ? 'merchant_admin' : 'normal_admin'
+                ]);
+                
+                // 获取分组权限id
                 $ruleIds = PermissionGroup::where('permission_group_id', $groupId)
                     ->pluck('permission_id')->toArray();
 
+                Log::info('用户组权限ID', [
+                    'group_id' => $groupId,
+                    'rule_ids' => $ruleIds
+                ]);
+
                 // 获取这些权限的所有父级（包括多级）
                 $allRuleIds = $this->getRuleWithParents($ruleIds);
+
+                Log::info('包含父级的权限ID', [
+                    'original_rule_ids' => $ruleIds,
+                    'all_rule_ids' => $allRuleIds
+                ]);
 
                 $baseQuery->whereIn('id', $allRuleIds);
             }
 
             $menus = $baseQuery->orderBy('weight', 'desc')->get()->toArray();
+            
+            Log::info('查询到的菜单数据', [
+                'menus_count' => count($menus),
+                'menus' => $menus
+            ]);
 
             $tree = $this->buildMenuTree($menus);
-            try{
-                Redis::setEx($key, OrderConfig::ADMIN_MENU_CACHE_TTL, json_encode($tree,JSON_UNESCAPED_UNICODE));
-            } catch (\Throwable $e) {
-                Log::error('redis异常',[
-                    'message' => $e->getMessage(),
-                    'file'    => $e->getFile(),
-                    'line'    => $e->getLine(),
-                    'trace'   => $e->getTraceAsString(),
-                ]);
-            }
+
+            Log::info('构建的菜单树', [
+                'tree_count' => count($tree),
+                'tree' => $tree
+            ]);
 
             return success($tree);
-
     }
 private function getRuleWithParents(array $ruleIds): array
 {
@@ -279,8 +288,9 @@ private function getRuleWithParents(array $ruleIds): array
             $userData['is_merchant_admin'] = $isMerchantAdmin;
         }
         
-        return success($userData);
+            return success($userData);
     }
+
 
 }
 
