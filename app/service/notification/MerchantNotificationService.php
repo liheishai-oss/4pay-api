@@ -172,8 +172,8 @@ class MerchantNotificationService
             'amount' => number_format($order->amount, 2, '.', ''), // 确保金额格式为元，保留2位小数
             'status' => $order->status,
             'status_text' => $this->getStatusText($order->status),
-            'paid_time' => $this->formatDateTime($order->paid_time),
-            'created_at' => $this->formatDateTime($order->created_at),
+            'paid_time' => $order->paid_time ?: '', // Order模型已处理时间格式
+            'created_at' => $order->created_at ?: '', // Order模型已处理时间格式
             'extra_data' => $extraData, // 扩展数据，JSON格式
             'timestamp' => time(),
             'sign' => $this->generateSign($order, $extraData)
@@ -645,25 +645,6 @@ class MerchantNotificationService
         ]);
     }
 
-    /**
-     * 格式化日期时间
-     * @param string|null $datetime
-     * @return string
-     */
-    private function formatDateTime(?string $datetime): string
-    {
-        if (empty($datetime)) {
-            return '';
-        }
-        
-        // 如果是ISO格式，转换为标准格式
-        if (strpos($datetime, 'T') !== false) {
-            $date = new \DateTime($datetime);
-            return $date->format('Y-m-d H:i:s');
-        }
-        
-        return $datetime;
-    }
 
     /**
      * 生成签名
@@ -681,8 +662,8 @@ class MerchantNotificationService
             'amount' => number_format($order->amount, 2, '.', ''),
             'status' => $order->status,
             'status_text' => $this->getStatusText($order->status),
-            'paid_time' => $this->formatDateTime($order->paid_time),
-            'created_at' => $this->formatDateTime($order->created_at),
+            'paid_time' => $order->paid_time ?: '',
+            'created_at' => $order->created_at ?: '',
             'extra_data' => $extraData,
             'timestamp' => time()
         ];
