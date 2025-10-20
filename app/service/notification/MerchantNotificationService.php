@@ -163,9 +163,6 @@ class MerchantNotificationService
      */
     private function buildNotifyData(Order $order, array $callbackData = []): array
     {
-        // 从callbackData中获取extra_data，如果没有则使用订单中的extra_data
-        $extraData = $callbackData['extra_data'] ?? $order->extra_data ?? '{}';
-        
         return [
             'order_no' => $order->order_no,
             'merchant_order_no' => $order->merchant_order_no,

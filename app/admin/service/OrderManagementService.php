@@ -326,18 +326,33 @@ class OrderManagementService
                 // 记录人工补发回调的链路追踪
                 $this->logManualCallbackTrace($order);
 
-                // 使用 MerchantNotificationService 实际触发回调
-                $notificationService = new \app\service\notification\MerchantNotificationService();
-                $notificationService->notifyMerchantAsync($order);
-
-                // 记录日志
-                \support\Log::info('人工补发回调', [
+                // 构建回调数据
+                $callbackData = $this->buildCallbackData($order);
+                
+                // 记录请求参数
+                \support\Log::info('人工补发回调 - 请求参数', [
                     'order_id' => $order->id,
                     'order_no' => $order->order_no,
                     'merchant_order_no' => $order->merchant_order_no,
                     'merchant_id' => $order->merchant_id,
                     'notify_url' => $order->notify_url,
-                    'action' => 'manual_callback_retry'
+                    'callback_data' => $callbackData,
+                    'action' => 'manual_callback_request'
+                ]);
+
+                // 使用 MerchantNotificationService 实际触发回调
+                $notificationService = new \app\service\notification\MerchantNotificationService();
+                $response = $this->sendCallbackWithResponse($notificationService, $order, $callbackData);
+
+                // 记录响应结果
+                \support\Log::info('人工补发回调 - 响应结果', [
+                    'order_id' => $order->id,
+                    'order_no' => $order->order_no,
+                    'merchant_order_no' => $order->merchant_order_no,
+                    'merchant_id' => $order->merchant_id,
+                    'notify_url' => $order->notify_url,
+                    'response' => $response,
+                    'action' => 'manual_callback_response'
                 ]);
 
                 $successCount++;
@@ -642,5 +657,162 @@ class OrderManagementService
         if (!in_array($newStatus, $allowedTransitions[$currentStatus] ?? [])) {
             throw new \Exception('无效的状态转换');
         }
+    }
+
+    /**
+     * 构建回调数据 - 与MerchantNotificationService保持一致
+     */
+    private function buildCallbackData($order)
+    {
+        return [
+            'order_no' => $order->order_no,
+            'merchant_order_no' => $order->merchant_order_no,
+            'amount' => number_format($order->amount / 100, 2, '.', ''), // 将分转换为元，保留2位小数
+            'status' => $order->status,
+            'status_text' => $this->getStatusText($order->status),
+            'paid_time' => $this->formatDateTime($order->paid_time),
+            'created_at' => $this->formatDateTime($order->created_at),
+            'timestamp' => time(),
+            'sign' => $this->generateSign($order)
+        ];
+    }
+
+    /**
+     * 发送回调并获取响应
+     */
+    private function sendCallbackWithResponse($notificationService, $order, $callbackData)
+    {
+        try {
+            // 使用GuzzleHttp发送同步请求
+            $client = new \GuzzleHttp\Client([
+                'timeout' => 10,
+                'connect_timeout' => 5,
+                'verify' => false,
+                'http_errors' => false
+            ]);
+
+            $startTime = microtime(true);
+            
+            $response = $client->post($order->notify_url, [
+                'json' => $callbackData,
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'User-Agent' => 'PaymentSystem/1.0',
+                    'X-Order-No' => $order->order_no
+                ]
+            ]);
+
+            $responseTime = microtime(true) - $startTime;
+            $httpCode = $response->getStatusCode();
+            $responseBody = $response->getBody()->getContents();
+
+            return [
+                'success' => true,
+                'http_code' => $httpCode,
+                'response_body' => $responseBody,
+                'response_time' => round($responseTime, 3),
+                'is_success_response' => $httpCode == 200 && $this->isSuccessResponse($responseBody)
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'http_code' => 0,
+                'response_body' => '',
+                'response_time' => 0,
+                'is_success_response' => false
+            ];
+        }
+    }
+
+    /**
+     * 格式化日期时间 - 与MerchantNotificationService保持一致
+     */
+    private function formatDateTime($datetime)
+    {
+        if (empty($datetime)) {
+            return '';
+        }
+        
+        if (strpos($datetime, 'T') !== false) {
+            try {
+                $date = new \DateTime($datetime);
+                return $date->format('Y-m-d H:i:s');
+            } catch (\Exception $e) {
+                return '';
+            }
+        }
+        
+        return $datetime;
+    }
+
+    /**
+     * 获取状态文本 - 与MerchantNotificationService保持一致
+     */
+    private function getStatusText($status)
+    {
+        $statusMap = [
+            1 => '待支付',
+            2 => '支付中',
+            3 => '支付成功',
+            4 => '支付失败',
+            5 => '已退款',
+            6 => '已关闭'
+        ];
+        return $statusMap[$status] ?? '未知状态';
+    }
+
+    /**
+     * 生成签名 - 与MerchantNotificationService保持一致
+     */
+    private function generateSign($order)
+    {
+        $merchant = $order->merchant;
+        $signData = [
+            'order_no' => $order->order_no,
+            'merchant_order_no' => $order->merchant_order_no,
+            'amount' => number_format($order->amount / 100, 2, '.', ''),
+            'status' => $order->status,
+            'status_text' => $this->getStatusText($order->status),
+            'paid_time' => $this->formatDateTime($order->paid_time),
+            'created_at' => $this->formatDateTime($order->created_at),
+            'timestamp' => time()
+        ];
+        
+        $excludeFields = ['sign', 'client_ip', 'entities_id'];
+        $filteredData = [];
+        
+        foreach ($signData as $key => $value) {
+            if (!in_array($key, $excludeFields)) {
+                $filteredData[$key] = $value;
+            }
+        }
+        
+        ksort($filteredData);
+        
+        $stringToSign = '';
+        foreach ($filteredData as $value) {
+            $stringToSign .= (string)$value;
+        }
+        
+        return md5($stringToSign . $merchant->merchant_key);
+    }
+
+    /**
+     * 判断响应是否成功 - 与MerchantNotificationService保持一致
+     */
+    private function isSuccessResponse($responseBody)
+    {
+        $response = json_decode($responseBody, true);
+        if (is_array($response)) {
+            return isset($response['code']) && $response['code'] == 200 ||
+                   isset($response['status']) && $response['status'] == 'success' ||
+                   isset($response['result']) && $response['result'] == 'success' ||
+                   $responseBody === 'success' ||
+                   $responseBody === 'SUCCESS';
+        }
+        
+        return $responseBody === 'success' || $responseBody === 'SUCCESS';
     }
 }
