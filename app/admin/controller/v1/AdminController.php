@@ -74,6 +74,12 @@ class AdminController
                 return error('用户信息不完整', 401);
             }
 
+            Log::info('获取菜单数据', [
+                'user_id' => $userId,
+                'group_id' => $groupId,
+                'is_super_admin' => $userId == Common::ADMIN_USER_ID
+            ]);
+
             // 直接从数据库获取菜单数据，不使用缓存
             $baseQuery = AdminRule::where([
                 'is_menu' => 1,
@@ -85,14 +91,37 @@ class AdminController
                 $ruleIds = PermissionGroup::where('permission_group_id', $groupId)
                     ->pluck('permission_id')->toArray();
 
+                Log::info('用户组权限ID', [
+                    'group_id' => $groupId,
+                    'rule_ids' => $ruleIds
+                ]);
+
                 // 获取这些权限的所有父级（包括多级）
                 $allRuleIds = $this->getRuleWithParents($ruleIds);
 
+                Log::info('包含父级的权限ID', [
+                    'original_rule_ids' => $ruleIds,
+                    'all_rule_ids' => $allRuleIds
+                ]);
+
                 $baseQuery->whereIn('id', $allRuleIds);
+            } else {
+                Log::info('超级管理员，获取所有菜单');
             }
 
             $menus = $baseQuery->orderBy('weight', 'desc')->get()->toArray();
+            
+            Log::info('查询到的菜单数据', [
+                'menus_count' => count($menus),
+                'menus' => $menus
+            ]);
+
             $tree = $this->buildMenuTree($menus);
+
+            Log::info('构建的菜单树', [
+                'tree_count' => count($tree),
+                'tree' => $tree
+            ]);
 
             return success($tree);
     }
