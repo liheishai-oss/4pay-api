@@ -163,9 +163,6 @@ class MerchantNotificationService
      */
     private function buildNotifyData(Order $order, array $callbackData = []): array
     {
-        // 从callbackData中获取extra_data，如果没有则使用订单中的extra_data
-        $extraData = $callbackData['extra_data'] ?? $order->extra_data ?? '{}';
-        
         return [
             'order_no' => $order->order_no,
             'merchant_order_no' => $order->merchant_order_no,
@@ -175,7 +172,7 @@ class MerchantNotificationService
             'paid_time' => $this->formatDateTime($order->paid_time), // 格式化时间
             'created_at' => $this->formatDateTime($order->created_at), // 格式化时间
             'timestamp' => time(),
-            'sign' => $this->generateSign($order)
+            'sign' => \app\common\helpers\SignatureHelper::generate($this->buildSignData($order), $order->merchant->merchant_key)
         ];
     }
 
@@ -669,15 +666,13 @@ class MerchantNotificationService
     }
 
     /**
-     * 生成签名
+     * 构建签名数据
      * @param Order $order
-     * @return string
+     * @return array
      */
-    private function generateSign(Order $order): string
+    private function buildSignData(Order $order): array
     {
-        $merchant = $order->merchant;
-        // 构建签名数据，不包含third_party_order_no和extra_data字段
-        $signData = [
+        return [
             'order_no' => $order->order_no,
             'merchant_order_no' => $order->merchant_order_no,
             'amount' => number_format($order->amount / 100, 2, '.', ''),
@@ -687,28 +682,6 @@ class MerchantNotificationService
             'created_at' => $this->formatDateTime($order->created_at),
             'timestamp' => time()
         ];
-        
-        // 按文档规则生成签名：排除sign字段，按字段名排序，拼接值，最后加密钥
-        $excludeFields = ['sign', 'client_ip', 'entities_id'];
-        $filteredData = [];
-        
-        foreach ($signData as $key => $value) {
-            if (!in_array($key, $excludeFields)) {
-                $filteredData[$key] = $value;
-            }
-        }
-        
-        // 按字段名排序
-        ksort($filteredData);
-        
-        // 拼接所有字段值
-        $stringToSign = '';
-        foreach ($filteredData as $value) {
-            $stringToSign .= (string)$value;
-        }
-        
-        // 生成签名：md5(stringToSign + secretKey)
-        return md5($stringToSign . $merchant->merchant_key);
     }
 
     /**
