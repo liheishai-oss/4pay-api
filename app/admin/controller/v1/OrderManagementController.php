@@ -35,11 +35,28 @@ class OrderManagementController
                 $searchParams = $searchParams['search'];
             }
             
+            // 商户管理员权限控制：只能看到自己的订单
+            if (isset($request->userData) && !empty($request->userData['is_merchant_admin']) && $request->userData['is_merchant_admin']) {
+                $adminId = $request->userData['admin_id'] ?? null;
+                if ($adminId) {
+                    $merchantId = \app\model\Merchant::where('admin_id', $adminId)->value('id');
+                    if (!empty($merchantId)) {
+                        // 强制设置商户ID，确保商户管理员只能看到自己的订单
+                        $searchParams['merchant_id'] = $merchantId;
+                        \support\Log::info('商户管理员订单查询', [
+                            'admin_id' => $adminId,
+                            'merchant_id' => $merchantId
+                        ]);
+                    }
+                }
+            }
+            
             // 记录搜索参数用于调试
             \support\Log::info('订单搜索参数', [
                 'page' => $page,
                 'page_size' => $pageSize,
-                'search_params' => $searchParams
+                'search_params' => $searchParams,
+                'is_merchant_admin' => $request->userData['is_merchant_admin'] ?? false
             ]);
 
             $result = $this->orderService->getOrderList($page, $pageSize, $searchParams);
