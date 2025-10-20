@@ -23,3 +23,4 @@ WHERE TABLE_SCHEMA = DATABASE()
     AND TABLE_NAME IN ('fourth_party_payment_order_lifecycle_traces', 'fourth_party_payment_order_query_traces')
     AND COLUMN_NAME IN ('created_at', 'updated_at')
 ORDER BY TABLE_NAME, COLUMN_NAME;
+

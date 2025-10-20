@@ -166,12 +166,12 @@ class MerchantNotificationService
         return [
             'order_no' => $order->order_no,
             'merchant_order_no' => $order->merchant_order_no,
-            'third_party_order_no' => $order->third_party_order_no,
-            'amount' => $order->amount,
+            'amount' => number_format($order->amount, 2, '.', ''), // 确保金额格式为元，保留2位小数
             'status' => $order->status,
             'status_text' => $this->getStatusText($order->status),
             'paid_time' => $order->paid_time,
             'created_at' => $order->created_at,
+            'extra_data' => $order->extra_data ?: '{}', // 扩展数据，JSON格式
             'sign' => $this->generateSign($order),
             'timestamp' => time(),
             'callback_data' => $callbackData
@@ -651,8 +651,21 @@ class MerchantNotificationService
     private function generateSign(Order $order): string
     {
         $merchant = $order->merchant;
-        $signString = $order->order_no . $order->merchant_order_no . $order->amount . $order->status . $merchant->merchant_key;
-        return md5($signString);
+        // 构建签名数据，不包含third_party_order_no字段
+        $signData = [
+            'order_no' => $order->order_no,
+            'merchant_order_no' => $order->merchant_order_no,
+            'amount' => number_format($order->amount, 2, '.', ''),
+            'status' => $order->status,
+            'status_text' => $this->getStatusText($order->status),
+            'paid_time' => $order->paid_time,
+            'created_at' => $order->created_at,
+            'extra_data' => $order->extra_data ?: '{}',
+            'timestamp' => time()
+        ];
+        
+        // 使用SignatureHelper生成签名
+        return \app\common\helpers\SignatureHelper::generate($signData, $merchant->merchant_key);
     }
 
     /**

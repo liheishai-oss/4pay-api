@@ -144,15 +144,16 @@ class TestCallbackController
             $amount = $request->input('amount', '100.00');
             $status = $request->input('status', 'success');
             
-            // 构建回调数据
+            // 构建回调数据（不包含third_party_order_no字段）
             $data = [
                 'order_no' => $orderNo,
                 'merchant_order_no' => $merchantOrderNo,
-                'amount' => $amount,
+                'amount' => number_format((float)$amount, 2, '.', ''), // 确保金额格式为元，保留2位小数
                 'status' => $status,
                 'status_text' => $this->getStatusText($status),
                 'paid_time' => date('Y-m-d H:i:s'),
                 'created_at' => date('Y-m-d H:i:s'),
+                'extra_data' => '{"user_id": "12345", "source": "mobile_app"}', // 扩展数据，JSON格式
                 'timestamp' => time()
             ];
             

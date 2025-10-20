@@ -149,3 +149,4 @@ class SignatureMiddleware
         return $next($request);
     }
 }
+
