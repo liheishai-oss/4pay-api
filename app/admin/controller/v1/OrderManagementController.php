@@ -9,7 +9,7 @@ use support\Response;
 class OrderManagementController
 {
     // 临时允许所有操作无需登录（用于测试）
-    protected array $noNeedLogin = ['*'];
+//    protected array $noNeedLogin = ['*'];
 
     protected $orderService;
 
@@ -34,12 +34,13 @@ class OrderManagementController
             if (isset($searchParams['search']) && is_array($searchParams['search'])) {
                 $searchParams = $searchParams['search'];
             }
-            
+
             // 非管理员用户权限控制：只能看到自己的订单
             $adminId = $request->userData['admin_id'] ?? null;
             if ($adminId && $adminId != \app\common::ADMIN_USER_ID) {
                 // 非超级管理员，需要限制只能看到自己的订单
                 $merchantId = \app\model\Merchant::where('admin_id', $adminId)->value('id');
+
                 if (!empty($merchantId)) {
                     // 强制设置商户ID，确保非管理员用户只能看到自己的订单
                     $searchParams['merchant_id'] = $merchantId;
@@ -50,7 +51,7 @@ class OrderManagementController
                     ]);
                 }
             }
-            
+
             // 记录搜索参数用于调试
             \support\Log::info('订单搜索参数', [
                 'page' => $page,

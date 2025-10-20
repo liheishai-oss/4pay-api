@@ -78,15 +78,6 @@ class AdminGroupController
             $service = new AdminGroup();
            $service->save($param);
 
-            // 清除相关用户组的菜单缓存
-            if (isset($param['id']) && $param['id']) {
-                // 编辑操作，清除该组及其子组的菜单缓存
-                \app\service\MenuCacheService::clearGroupUsersMenuCache($param['id']);
-            } else {
-                // 新增操作，清除所有菜单缓存
-                \app\service\MenuCacheService::clearAllMenuCache();
-            }
-
             return success([],'操作成功');
         } catch (ValidationException $e) {
             throw new MyBusinessException($e->getMessage());
